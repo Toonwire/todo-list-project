@@ -14,6 +14,7 @@ class Login extends React.Component {
             userId: null,
             username: "",
             password: "",
+            loginFailed: false,
             // loginToken: this.props.loginToken,
         }
     }
@@ -66,16 +67,19 @@ class Login extends React.Component {
                     this.props.onLoginSuccess(verifiedUser);
                 });
             }
-        })
+        }).catch(err => {
+            console.log(err.response);
+            this.setState({loginFailed: true});
+        });
         
     }
 
     handleUsernameChange = (e) => {
-        this.setState({username: e.target.value})
+        this.setState({username: e.target.value, loginFailed: false});
     }
 
     handlePasswordChange = (e) => {
-        this.setState({password: e.target.value})
+        this.setState({password: e.target.value, loginFailed: false});
     }
 
     render() {
@@ -90,6 +94,9 @@ class Login extends React.Component {
 				<br/>
                 
 				<input id="btn_submit" type="submit" name="submit"/>
+                <div className="form-response">
+                    {(this.state.loginFailed ? "Incorrect username or password" : "") }
+                </div>
 			</form>
 		);
     }

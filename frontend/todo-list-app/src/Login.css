@@ -45,3 +45,8 @@
     background-color: rgb(184, 168, 149);
 }
   
+.form-response {
+    margin-top: 20px;
+    color: red;
+    font-size: 20px;
+}

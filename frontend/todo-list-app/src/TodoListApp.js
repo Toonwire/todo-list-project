@@ -59,7 +59,7 @@ class TodoListApp extends React.Component {
 
 	onTodoListChange = (tabId, todos, filter) => {
 		// update todolist references to reflect changes
-        const tabs = this.state.todoListTabs;
+        let tabs = this.state.todoListTabs;
         let changedTab = tabs.find(tab => {
             return tab.id === tabId
         })
@@ -122,9 +122,11 @@ class TodoListApp extends React.Component {
 				isActive: false,
 				todoList: <TodoList key={todoList.id} id={todoList.id} todos={[]} filter={"filter-all"} onTodoListChange={this.onTodoListChange}/>,
 			}
-
+			newTab['isActive'] = tabs.length === 0;
 			tabs.push(newTab);
-			this.setState({todoListTabs: tabs, newTabLabel: ""});
+			this.setState({todoListTabs: tabs, newTabLabel: ""}, () => {
+				console.log(this.state.todoListTabs)
+			});
 		});		
 	}
 
@@ -135,6 +137,7 @@ class TodoListApp extends React.Component {
     }
     
     onNewTabChange = (e) => {
+		console.log("dont do this");
 		this.setState({newTabLabel: e.target.value});
 	}
 	

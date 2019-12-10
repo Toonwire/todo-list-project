@@ -49,11 +49,11 @@
     background-color: rgb(184, 168, 149);
 }
   
-#login_link {
+.form-response {
     margin-top: 20px;
 }
 
-#login_link a {
+.form-response a {
     color: lightgreen;
     font-size: 20px;
     font-variant-caps: small-caps;

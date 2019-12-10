@@ -42,7 +42,7 @@ class TodoList extends React.Component {
                 todolist_id: todoListId,
             }).then(res => {
                 console.log(res)
-                if (res.data.statusCode === 200) {
+                if (res.status === 200) {
 
                     const insertedTodo = res.data.todo;
                     const todo = {
@@ -87,7 +87,7 @@ class TodoList extends React.Component {
             due_date: utcDate,
         }).then(res => {
             console.log(res)
-            if (res.data.statusCode === 200) {
+            if (res.status === 200) {
                 const resTodo = res.data.todo;
 
                 // var localDate = new Date(resTodo.due_date);
@@ -135,7 +135,7 @@ class TodoList extends React.Component {
         axios.patch('http://localhost:5000/todos/completed', {
             todolist_id: todoListId
         }).then(res => {
-            if (res.data.statusCode === 200) {
+            if (res.status === 200) {
                 this.setState({todos: activeTodos}, () => {
                     this.handleTodoListChange();
                 });

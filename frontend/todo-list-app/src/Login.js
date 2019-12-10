@@ -60,7 +60,7 @@ class Login extends React.Component {
             password: password,
         }, {headers: headers}).then(res => {
             console.log(res)
-            if (res.data.statusCode === 200) {
+            if (res.status === 200) {
                 const verifiedUser = res.data.user;
                 console.log(verifiedUser)
                 this.setState({userId: verifiedUser.id}, () => {
@@ -71,7 +71,6 @@ class Login extends React.Component {
             console.log(err.response);
             this.setState({loginFailed: true});
         });
-        
     }
 
     handleUsernameChange = (e) => {

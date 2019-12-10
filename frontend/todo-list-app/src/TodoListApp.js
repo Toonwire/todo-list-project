@@ -22,7 +22,7 @@ class TodoListApp extends React.Component {
 
 		this.state = {
 			user: {
-				userId: null,
+				id: null,
 				username: "",
 				// loginToken: "",
 			},
@@ -31,10 +31,13 @@ class TodoListApp extends React.Component {
 		}
 	}
 
-	componentDidMount() {	
+	getUserTodoLists() {	
 		// call backend to init todolists
-		axios.get('http://localhost:5000/todolists')
-			.then(res => {
+		axios.get('http://localhost:5000/todolists', {
+			params: {
+				user_id: this.state.user.id
+			}
+		}).then(res => {
 				console.log(res)
 				let initTodoListTabs = []
 				const todoLists = res.data['todo_lists'] // [{..},{..}, ..]
@@ -48,6 +51,8 @@ class TodoListApp extends React.Component {
 
 				initTodoListTabs[0]['isActive'] = true
 				this.setState({todoListTabs: initTodoListTabs})
+			}).catch(err => {
+				console.log(err.response);
 			})
 	}
 
@@ -88,7 +93,7 @@ class TodoListApp extends React.Component {
 	
 	ActiveTodoList (props) {
 		const tabs = props.todoListTabs;
-		if (tabs.length === 0) return (<span>Loading todos..</span>)
+		if (tabs.length === 0) return (<span>No todos loaded</span>)
 		var activeTab = tabs.find(function(tab) {
 			return tab.isActive;
 		});
@@ -106,11 +111,12 @@ class TodoListApp extends React.Component {
 		}
 
 		axios.post('http://localhost:5000/todolist', {
-			title: newTabTitle.trim()
+			title: newTabTitle.trim(),
+			user_id: this.state.user.id
 		}).then(res => {
 			console.log(res)
 			// response > data > todo_list carries inserted todolist object (json)
-			if (res.data.statusCode === 200) {
+			if (res.status === 200) {
 
 				const todoList = res.data.todo_list;
 				const newTab = {
@@ -139,35 +145,17 @@ class TodoListApp extends React.Component {
 	onLoginSuccess = (user) => {
 		// user: {id, username, login_token}
 		const loggedInUser = {
-			userId: user.id,
+			id: user.id,
 			username: user.username,
 			// loginToken: user.login_token,
 		}
-		this.setState({user: loggedInUser});
-
-		// call backend to init todolists for this user
-		axios.get('http://localhost:5000/todolists')
-			.then(res => {
-				console.log(res)
-				let initTodoListTabs = []
-				const todoLists = res.data['todo_lists'] // [{..},{..}, ..]
-				todoLists.forEach(todoList => {
-					const listId = todoList['id'] 
-					const title = todoList['title']
-					const todoItems = todoList['todo_items']
-					const jsxTodoList = <TodoList key={listId} id={listId} todos={todoItems} filter={"filter-all"} onTodoListChange={this.onTodoListChange}/>
-					initTodoListTabs.push({id: listId, label: title, isActive: false, todoList: jsxTodoList})
-				});
-
-				initTodoListTabs[0]['isActive'] = true
-				this.setState({todoListTabs: initTodoListTabs});
-			})
+		console.log(user.id);
+		this.setState({user: loggedInUser}, this.getUserTodoLists);
 	}
-
 
 	
 	render() {  
-		const isUserLoggedIn = this.state.user.userId !== null;
+		const isUserLoggedIn = this.state.user.id !== null;
 		console.log("Is user logged in: " + isUserLoggedIn);
 
 		return (

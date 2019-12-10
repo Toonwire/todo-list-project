@@ -5,8 +5,7 @@ Created on Fri Nov  8 09:45:39 2019
 @author: lvi
 """
 
-from flask import Flask, request, jsonify, abort, flash, url_for, redirect
-import json
+from flask import Flask, request, jsonify #, abort, flash, url_for, redirect
 import secrets
 import hashlib
 
@@ -37,7 +36,7 @@ def generate_token(nbytes=64):
 def update_login_token(user_id):
     connection = connect('db', 'todos', 'root', 'rootroot')
     if (connection is None):
-        return jsonify({"Error": "Could not connect to database", "statusCode": 503, "statusMsg": "Incorrect credentials or schema does not exist"})
+        return None
     
     login_token = None
     cursor = connection.cursor(prepared=True)
@@ -108,7 +107,6 @@ def update_login_token(user_id):
 cors_white_list = ['http://localhost:3000']
 @app.after_request
 def after_request(response): 
-    
     req_origin = request.environ.get("HTTP_ORIGIN", "Unknown Origin")
     if req_origin in cors_white_list:
         response.headers.add('Access-Control-Allow-Origin', req_origin)
@@ -127,9 +125,8 @@ def create_user():
 
     connection = connect('db', 'todos', 'root', 'rootroot')
     if (connection is None):
-        return jsonify({"Error": "Could not connect to database", "statusCode": 503, "statusMsg": "Incorrect db credentials or schema does not exist"})
+        return jsonify({"errMsg": "Could not connect to database"}), 503
     
-    response = jsonify({"Error": 'asd', "statusCode": 503, "statusMsg": "Something went wrong"})
     cursor = connection.cursor(prepared=True)
     try:
         query = """ INSERT INTO users (username, first_name, last_name, pw_hash, salt, login_token, pw_token) VALUES (%s, %s, %s, %s, %s, %s, %s) """
@@ -144,8 +141,8 @@ def create_user():
         cursor.fetchall()
         
     
-        if (cursor.rowcount > 0): return jsonify({"statusCode": 503, "statusMsg": "Username already in use"})
-        if user_pw != user_cpw: return jsonify({"Error": "Could not create new user", "statusCode": 401, "statusMsg": "Passwords did not match."})
+        if (cursor.rowcount > 0): return jsonify({"errMsg": "Username already in use"}), 401
+        if user_pw != user_cpw: return jsonify({"errMsg": "Passwords did not match"}), 402
         
         salt = generate_salt_csprng()
         salted_password = user_pw + salt
@@ -165,11 +162,11 @@ def create_user():
         keys = ("id", "username")
         user = dict(zip(keys, cursor.fetchone()))
         
-        response = jsonify({"user": user, "statusCode": 200, "statusMsg": "User created successfully"})
+        return jsonify({"user": user, "statusMsg": "User created successfully"}), 201
 #        response.set_cookie('_session_id', session_id, httponly=True)
             
-    except mysql.connector.Error as error:
-        return jsonify({"Error": error, "statusCode": 503, "statusMsg": "Something went wrong trying to call database"})
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 503
         
     finally:
         if (connection.is_connected()):
@@ -177,17 +174,17 @@ def create_user():
             connection.close()
             print("Connection closed")
     
-    return response
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 
 @app.route("/login", methods=["POST"])
 def login_user():
     if request.headers['Content-Type'] != 'application/json':
-        return jsonify({"Error": "Unexpected Content-Type header", "statusCode": 503, "statusMsg": "Content-Type header did not match required value 'application/json', was " + request.headers['Content-Type']})
+        return jsonify({"errMsg": "Content-Type header did not match required value 'application/json', was " + request.headers['Content-Type']}), 401
     
     connection = connect('db', 'todos', 'root', 'rootroot')
     if (connection is None):
-        return jsonify({"Error": "Could not connect to database", "statusCode": 503, "statusMsg": "Incorrect credentials or schema does not exist"})
+        return jsonify({"errMsg": "Could not connect to database"}), 503
     
     user = None
     cursor = connection.cursor(prepared=True)
@@ -199,8 +196,8 @@ def login_user():
         cursor.execute("SELECT id, salt, pw_hash FROM users WHERE username=(%s)", (username,))
         user_credentials = cursor.fetchone()
         if user_credentials is None:
-            response = jsonify({"error": "No such user '" + username + "'", "msg": "User is not registered"})
-            return response, 401
+            return jsonify({"errMsg": "User does not exist"}), 402
+        
         user_id = user_credentials[0]
         user_salt = user_credentials[1]
         user_pw_hash = user_credentials[2]
@@ -214,9 +211,10 @@ def login_user():
             keys = ("id", "username")
             values = (user_id, username)
             user = dict(zip(keys, values))
+            return jsonify({"user": user, "statusMsg": "User logged in"}), 200
             
     except mysql.connector.Error:
-        return jsonify({"error": "SQL failed", "statusCode": 503, "statusMsg": "Something went wrong trying to call database"})
+        return jsonify({"errMsg": "Database error"}), 503
         
     finally:
         if (connection.is_connected()):
@@ -224,12 +222,11 @@ def login_user():
             connection.close()
             print("Connection closed")
     
-    response = jsonify({"user": user, "statusCode": 200, "statusMsg": "User logged in"})
-    print(request.cookies.get('_session_id'))
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
+#    print(request.cookies.get('_session_id'))
 #    if not request.cookies.get('_session_id'):
 #        response.set_cookie('_session_id', jwt.encode({'user_username': user_username}, app.config['SECRET_KEY'], algorithm='HS256'))
     
-    return response
 
 
 
@@ -279,24 +276,23 @@ def login_user():
 @app.route("/todolists", methods=["POST"])
 def insert_todolists():
     if request.headers['Content-Type'] != 'application/json':
-        return "Content-Type header did not match required value 'application/json', was ", request.headers['Content-Type']
+        return jsonify({"errMsg": "Content-Type header did not match required value 'application/json', was " + request.headers['Content-Type']}), 401
     
     req_data = request.get_json()
    
     todos = [todo for todo in req_data['todo_lists']]
     
-    
     connection = connect('db', 'todos', 'root', 'rootroot')
     if (connection is None):
-        return
+        return jsonify({"errMsg": "Could not connect to database"}), 503
     
     cursor = connection.cursor(prepared=True)
     
     try:
-        query = """ INSERT INTO todo_list (title) VALUES (%s) """
+        query = """ INSERT INTO todo_list (title, user_id) VALUES (%s, %s) """
         
         for todo in todos:
-            cursor.execute(query, (todo['title'],))
+            cursor.execute(query, (todo['title'], todo['user_id']))
             connection.commit()
         
         ## Now insert all todo items under the new todo list (reference the todo list id of the newly created todo list)
@@ -308,17 +304,18 @@ def insert_todolists():
                 cursor.execute(""" INSERT INTO todo_item (label, completed, due_date, todolist_id) VALUES (%s,%s,%s) """, (item['label'], item['completed'], item['due_date'], todolist_id))
             
         connection.commit()
+        return jsonify({"statusMsg": "Inserts were successful"}), 201
          
-    except mysql.connector.Error as error:
-        return "parameterized query failed {}".format(error)
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 503
         
     finally:
         if (connection.is_connected()):
             cursor.close()
             connection.close()
+            
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
     
-    response = jsonify({"statusCode": 200, "statusMsg": "Inserts were successful"})
-    return response
 
 
 @app.route("/todolists", methods=["GET"])
@@ -328,9 +325,10 @@ def get_todolists():
     todo_lists = []
     
     try:
-        cursor = connection.cursor()
+        user_id = request.args.get('user_id')
         
-        cursor.execute("SELECT * FROM todo_list")
+        cursor = connection.cursor()
+        cursor.execute("SELECT id, title, user_id FROM todo_list WHERE user_id = %s", (user_id,))
         todolists = cursor.fetchall()
         for todolist in todolists:
             list_id = todolist[0]
@@ -338,11 +336,12 @@ def get_todolists():
             
             cursor.execute(""" SELECT * FROM todo_item WHERE todolist_id=(%s) """, (list_id,))
             todo_items = [{"id": item_id, "label": label, "completed": completed, "due_date": due_date} for (item_id, label, completed, due_date, todolist_id) in cursor]
-        
             todo_lists.append({"id": list_id, "title": list_title, "todo_items": todo_items})
         
-    except mysql.connector.Error as error:
-        return "parameterized query failed {}".format(error)
+        return jsonify({"todo_lists": todo_lists, "statusMsg": "Successfully fetched todo lists belonging to user"}), 200
+             
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 503
         
     finally:
         if (connection.is_connected()):
@@ -350,34 +349,34 @@ def get_todolists():
             connection.close()
             print("Connection closed")
         
-    
-    response = jsonify({'todo_lists': todo_lists})
-    return response
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
         
 @app.route("/todolist", methods=["POST"])
 def insert_todolist():
     connection = connect('db', 'todos', 'root', 'rootroot')
     if (connection is None):
-        return json.dumps({"statusCode": 300, "statusMsg": "Could not connect to db"}) 
+        return jsonify({"errMsg": "Could not connect to database"}), 503
     
     todo_list = None
     cursor = connection.cursor(prepared=True)
     try:
-        query = """ INSERT INTO todo_list (title) VALUES (%s) """
+        query = """ INSERT INTO todo_list (title, user_id) VALUES (%s, %s) """
     
         req_data = request.get_json()
         todolist_title = req_data['title']
+        todolist_user_id = req_data['user_id']
         
-        cursor.execute(query, (todolist_title,))
+        cursor.execute(query, (todolist_title, todolist_user_id))
         connection.commit()
         
         ## setup return data 
-        cursor.execute("SELECT * FROM todo_list WHERE id = LAST_INSERT_ID()")
-        keys = ("id", "title")
+        cursor.execute("SELECT id, title, user_id FROM todo_list WHERE id = LAST_INSERT_ID()")
+        keys = ("id", "title", "user_id")
         todo_list = dict(zip(keys, cursor.fetchone()))
+        return jsonify({"todo_list": todo_list, "statusMsg": "New todolist inserted"}), 201
 
-    except mysql.connector.Error as error:
-        return "parameterized query failed {}".format(error)
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 503
         
     finally:
         if (connection.is_connected()):
@@ -385,17 +384,14 @@ def insert_todolist():
             connection.close()
             print("Connection closed")
             
-    
-    response = jsonify({"todo_list": todo_list, "statusCode": 200, "statusMsg": "New todolist inserted"})
-#    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 
 @app.route("/todo", methods=["PATCH"])
 def update_todo(): # change completed
     connection = connect('db', 'todos', 'root', 'rootroot')
     if (connection is None):
-        return json.dumps({"statusCode": 300, "statusMsg": "Could not connect to db"})
+        return jsonify({"errMsg": "Could not connect to database"}), 503
     
     todo = None
     cursor = connection.cursor(prepared=True)
@@ -411,48 +407,43 @@ def update_todo(): # change completed
         connection.commit()
         
         ## setup return data 
-        cursor.execute("SELECT * FROM todo_item WHERE id = %s", (todo_id,))
+        cursor.execute("SELECT id, label, completed, due_date, todolist_id FROM todo_item WHERE id = %s", (todo_id,))
         keys = ("id", "label", "completed", "due_date", "todolist_id")
         todo = dict(zip(keys, cursor.fetchone()))
+        return jsonify({"todo": todo, "statusMsg": "Updated todo item"}), 200
 
             
-    except mysql.connector.Error as error:
-        return "parameterized query failed {}".format(error)
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 503
         
     finally:
         if (connection.is_connected()):
             cursor.close()
             connection.close()
             print("Connection closed")
-    
-    response = jsonify({"todo": todo, "statusCode": 200, "statusMsg": "Updated todo_item"})
-    return response
+            
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 
 @app.route("/todos/completed", methods=["PATCH"])
 def clear_completed_todos(): 
     connection = connect('db', 'todos', 'root', 'rootroot')
     if (connection is None):
-        return json.dumps({"statusCode": 300, "statusMsg": "Could not connect to db"})
+        return jsonify({"errMsg": "Could not connect to database"}), 503
     
-    statusCode = 0
-    statusMsg = ""
     
     cursor = connection.cursor()
     try:
-        
         req_data = request.get_json()
         todolist_id = req_data['todolist_id']
         
         cursor.callproc('delete_completed', [todolist_id])
         connection.commit()
             
-        statusCode = 200
-        statusMsg = "Cleared all completed todos from todolist with id: " + str(todolist_id)
+        return jsonify({"statusMsg": "Cleared all completed todos from todolist with id: " + str(todolist_id)}), 200
 
-    except mysql.connector.Error as error:
-        statusCode = 501
-        statusMsg = "Operation failed with: {}".format(error)
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 503
         
     finally:
         if (connection.is_connected()):
@@ -460,18 +451,15 @@ def clear_completed_todos():
             connection.close()
             print("Connection closed")
     
-    response = jsonify({"statusCode": statusCode, "statusMsg": statusMsg})
-    return response
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
     
     
 @app.route("/todo", methods=["DELETE"])
 def delete_todo(): 
     connection = connect('db', 'todos', 'root', 'rootroot')
     if (connection is None):
-        return json.dumps({"statusCode": 300, "statusMsg": "Could not connect to db"})
+        return jsonify({"errMsg": "Could not connect to database"}), 503
     
-    statusCode = 0
-    statusMsg = ""
     cursor = connection.cursor(prepared=True)
     try:
         query = """ DELETE FROM todo_item WHERE id=(%s) """        
@@ -481,14 +469,11 @@ def delete_todo():
         
         cursor.execute(query, (todo_id,))
         connection.commit()
-            
-        statusCode = 200
-        statusMsg = "Todo deleted successfully"
-      
+        
+        return jsonify({"statusMsg": "Todo deleted successfully"}), 200
 
-    except mysql.connector.Error as error:
-        statusCode = 501
-        statusMsg = "Operation failed with: {}".format(error)
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 503
         
     finally:
         if (connection.is_connected()):
@@ -496,15 +481,13 @@ def delete_todo():
             connection.close()
             print("Connection closed")
     
-    response = jsonify({"statusCode": statusCode, "statusMsg": statusMsg})
-    return response
-
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 @app.route("/todo", methods=["POST"])
 def insert_todo(): 
     connection = connect('db', 'todos', 'root', 'rootroot')
     if (connection is None):
-        return json.dumps({"statusCode": 300, "statusMsg": "Could not connect to db"})
+        return jsonify({"errMsg": "Could not connect to database"}), 503
     
     cursor = connection.cursor(prepared=True)
     
@@ -525,10 +508,11 @@ def insert_todo():
         cursor.execute("SELECT * FROM todo_item WHERE id = LAST_INSERT_ID()")
         keys = ("id", "label", "completed", "due_date", "todolist_id")
         todo = dict(zip(keys, cursor.fetchone()))
+        return jsonify({"todo": todo, "statusMsg": "Todo inserted successfully"}), 201
 
             
-    except mysql.connector.Error as error:
-        return "parameterized query failed {}".format(error)
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 503
         
     finally:
         if (connection.is_connected()):
@@ -536,10 +520,7 @@ def insert_todo():
             connection.close()
             print("Connection closed")
             
-    
-    response = jsonify({"todo": todo, "statusCode": 200, "statusMsg": "Todo inserted successfully"})
-    return response
-    
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
         
 
 @app.route("/todos", methods=["GET"])
@@ -550,9 +531,10 @@ def get_todos():
         cursor = connection.cursor()
         cursor.execute("SELECT * FROM todo_item")
         todo_items = [{"id": item_id, "label": label, "completed": completed, "due_date": due_date, "todolist_id": todolist_id} for (item_id, label, completed, due_date, todolist_id) in cursor]
-        
-    except mysql.connector.Error as error:
-        return "parameterized query failed {}".format(error)
+        return jsonify({'todo_items': todo_items, "statusMsg": "Successfully fetched todo items"}), 200
+    
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 503
         
     finally:
         if (connection.is_connected()):
@@ -560,9 +542,7 @@ def get_todos():
             connection.close()
             print("Connection closed")
         
-    
-    response = jsonify({'todo_items': todo_items})
-    return response
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
     
 def connect(host='db', db='todos', user='root', password='rootroot'):

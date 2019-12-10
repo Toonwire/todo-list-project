@@ -22,34 +22,34 @@ class TodoListApp extends React.Component {
 
 		this.state = {
 			user: {
-				userId: 0,
+				userId: null,
 				username: "",
-				loginToken: "",
+				// loginToken: "",
 			},
 			todoListTabs: [],
 			newTabLabel: "",
 		}
 	}
 
-	// componentDidMount() {	
-	// 	// call backend to init todolists
-	// 	axios.get('http://localhost:5000/todolists')
-	// 		.then(res => {
-	// 			console.log(res)
-	// 			let initTodoListTabs = []
-	// 			const todoLists = res.data['todo_lists'] // [{..},{..}, ..]
-	// 			todoLists.forEach(todoList => {
-	// 				const listId = todoList['id'] 
-	// 				const title = todoList['title']
-	// 				const todoItems = todoList['todo_items']
-	// 				const jsxTodoList = <TodoList key={listId} id={listId} todos={todoItems} filter={"filter-all"} onTodoListChange={this.onTodoListChange}/>
-	// 				initTodoListTabs.push({id: listId, label: title, isActive: false, todoList: jsxTodoList})
-	// 			});
+	componentDidMount() {	
+		// call backend to init todolists
+		axios.get('http://localhost:5000/todolists')
+			.then(res => {
+				console.log(res)
+				let initTodoListTabs = []
+				const todoLists = res.data['todo_lists'] // [{..},{..}, ..]
+				todoLists.forEach(todoList => {
+					const listId = todoList['id'] 
+					const title = todoList['title']
+					const todoItems = todoList['todo_items']
+					const jsxTodoList = <TodoList key={listId} id={listId} todos={todoItems} filter={"filter-all"} onTodoListChange={this.onTodoListChange}/>
+					initTodoListTabs.push({id: listId, label: title, isActive: false, todoList: jsxTodoList})
+				});
 
-	// 			initTodoListTabs[0]['isActive'] = true
-	// 			this.setState({todoListTabs: initTodoListTabs})
-	// 		})
-	// }
+				initTodoListTabs[0]['isActive'] = true
+				this.setState({todoListTabs: initTodoListTabs})
+			})
+	}
 
 
 	onTodoListChange = (tabId, todos, filter) => {
@@ -141,7 +141,7 @@ class TodoListApp extends React.Component {
 		const loggedInUser = {
 			userId: user.id,
 			username: user.username,
-			loginToken: user.login_token,
+			// loginToken: user.login_token,
 		}
 		this.setState({user: loggedInUser});
 
@@ -167,16 +167,15 @@ class TodoListApp extends React.Component {
 
 	
 	render() {  
-		const isUserLoggedIn = this.state.user.userId !== 0;
+		const isUserLoggedIn = this.state.user.userId !== null;
 		console.log("Is user logged in: " + isUserLoggedIn);
-
-		
 
 		return (
 			<Router>			
 				<Switch>
-					<Route exact path="/todolists">
-						render = {
+					<Route 
+						path="/todolists"
+						render = {() =>
 							isUserLoggedIn ?
 							<div className="todo-list-app">
 								<div>
@@ -188,14 +187,14 @@ class TodoListApp extends React.Component {
 								<this.ActiveTodoList todoListTabs={this.state.todoListTabs}/>
 							</div>
 							: <Redirect to='/login' />
+						} 
+					/>
+					<Route 
+						path="/login"
+						render = {() =>
+							isUserLoggedIn ? <Redirect to='/todolists'/> : <Login onLoginSuccess={this.onLoginSuccess}/>
 						}
-						
-					</Route>
-					<Route exact path="/login">
-						render = {
-							isUserLoggedIn ? <Redirect to='/todolists'/> : <Login loginToken={this.state.user.loginToken} onLoginSuccess={this.onLoginSuccess}/>
-						}
-					</Route>
+					/>
 					<Route exact path="/register">
 						<Register />
 					</Route>

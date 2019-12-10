@@ -6,11 +6,9 @@ Created on Fri Nov  8 09:45:39 2019
 """
 
 from flask import Flask, request, jsonify, abort, flash, url_for, redirect
-from functools import wraps
 import json
 import secrets
 import hashlib
-import jwt
 
 import mysql.connector
 
@@ -64,48 +62,48 @@ def update_login_token(user_id):
     
     return login_token
     
-    
-def login_required(protected_function):
-    @wraps(protected_function)
-    def wrapper (*args, **kwargs):
-        encoded_session_id = request.cookies.get('_session_id')
-        print(request)
-        if encoded_session_id:
-            connection = connect('db', 'todos', 'root', 'rootroot')
-            if (connection is None):
-                return jsonify({"Error": "Could not connect to database", "statusCode": 503, "statusMsg": "Incorrect db credentials or schema does not exist"})
-            
-            user_id = None
-            try:
-                payload = jwt.decode(encoded_session_id, app.config['SECRET_KEY'], algorithm='HS256')          
-                
-                cursor = connection.cursor(prepared=True)
-                cursor.execute("SELECT id FROM users WHERE username=(%s)", (user_username,))
-                
-                if user_id:
-                    return protected_function(*args, **kwargs)
-                
-                else: 
-                    flash("Session exists, but no user has that session (deleted)")
-                    return redirect(url_for('login'))
-                    
-
-            except jwt.InvalidSignatureError:
-                response = jsonify({"Error": "Invalid signature", "statusCode": 401})
-                abort(401, response)
-                
-            except Exception as e:
-                return abort(402, jsonify({"Error": e, "statusCode": 401}))
-            
-            finally:
-                if (connection.is_connected()):
-                    cursor.close()
-                    connection.close()
-                    print("Connection closed")
-        else:
-            flash("No session, please log in")
-            return redirect(url_for('login'))
-    return wrapper
+#    
+#def login_required(protected_function):
+#    @wraps(protected_function)
+#    def wrapper (*args, **kwargs):
+#        encoded_session_id = request.cookies.get('_session_id')
+#        print(request)
+#        if encoded_session_id:
+#            connection = connect('db', 'todos', 'root', 'rootroot')
+#            if (connection is None):
+#                return jsonify({"Error": "Could not connect to database", "statusCode": 503, "statusMsg": "Incorrect db credentials or schema does not exist"})
+#            
+#            user_id = None
+#            try:
+#                payload = jwt.decode(encoded_session_id, app.config['SECRET_KEY'], algorithm='HS256')          
+#                
+#                cursor = connection.cursor(prepared=True)
+#                cursor.execute("SELECT id FROM users WHERE username=(%s)", (user_username,))
+#                
+#                if user_id:
+#                    return protected_function(*args, **kwargs)
+#                
+#                else: 
+#                    flash("Session exists, but no user has that session (deleted)")
+#                    return redirect(url_for('login'))
+#                    
+#
+#            except jwt.InvalidSignatureError:
+#                response = jsonify({"Error": "Invalid signature", "statusCode": 401})
+#                abort(401, response)
+#                
+#            except Exception as e:
+#                return abort(402, jsonify({"Error": e, "statusCode": 401}))
+#            
+#            finally:
+#                if (connection.is_connected()):
+#                    cursor.close()
+#                    connection.close()
+#                    print("Connection closed")
+#        else:
+#            flash("No session, please log in")
+#            return redirect(url_for('login'))
+#    return wrapper
         
 cors_white_list = ['http://localhost:3000']
 @app.after_request
@@ -156,25 +154,22 @@ def create_user():
         login_token = generate_token()
         pw_token = generate_token()
         
-        session_id = jwt.encode({'user_username': user_username}, app.config['SECRET_KEY'], algorithm='HS256')
+#        session_id = jwt.encode({'user_username': user_username}, app.config['SECRET_KEY'], algorithm='HS256')
         
         cursor.execute(query, (user_username, user_fname, user_lname, pw_hash, salt, login_token, pw_token))
         connection.commit() 
         
         
         ## setup return data 
-        cursor.execute("SELECT * FROM users WHERE username = %s", (user_username,))
-        keys = ("id", "username", "first_name", "last_name", "pw_hash", "salt", "login_token", "pw_token")
+        cursor.execute("SELECT id, username FROM users WHERE username = %s", (user_username,))
+        keys = ("id", "username")
         user = dict(zip(keys, cursor.fetchone()))
         
         response = jsonify({"user": user, "statusCode": 200, "statusMsg": "User created successfully"})
-        response.set_cookie('_session_id', session_id, httponly=True)
+#        response.set_cookie('_session_id', session_id, httponly=True)
             
     except mysql.connector.Error as error:
         return jsonify({"Error": error, "statusCode": 503, "statusMsg": "Something went wrong trying to call database"})
-    
-    except Exception as error:
-        abort(502, jsonify({"Error": error, "statusCode": 502, "statusMsg": "Something went wrong"}))
         
     finally:
         if (connection.is_connected()):
@@ -583,8 +578,7 @@ def connect(host='db', db='todos', user='root', password='rootroot'):
         return connection
     
 if __name__ == '__main__':
-      #app.secret_key = 'super12-secret3'
-      app.config['SECRET_KEY'] = "NS8V26K7aRTP5wDXwVxkR4iBy1oEiNud"
+#      app.config['SECRET_KEY'] = "NS8V26K7aRTP5wDXwVxkR4iBy1oEiNud"
       app.run(host="0.0.0.0", port=int("5000"))
       
       

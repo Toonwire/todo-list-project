@@ -2,7 +2,7 @@ import React from 'react';
 import axios from 'axios';
 import './Login.css';
 
-import { withRouter } from "react-router-dom";
+import "react-router-dom";
 
 
 class Login extends React.Component {
@@ -11,39 +11,40 @@ class Login extends React.Component {
         super(props)
 
         this.state = {
+            userId: null,
             username: "",
             password: "",
-            loginToken: this.props.loginToken,
+            // loginToken: this.props.loginToken,
         }
     }
 
-    componentDidMount(){
-        if (this.props.location.state && this.props.location.state.loginToken) // check if there is a redirect state 
-            this.setState({loginToken: this.props.location.state.loginToken}, () => {
-                console.log(this.state.loginToken);
-                this.handleLoginWithToken();
-            });
-    }
+    // componentDidMount(){
+    //     if (this.props.location.state && this.props.location.state.loginToken) // check if there is a redirect state 
+    //         this.setState({loginToken: this.props.location.state.loginToken}, () => {
+    //             console.log(this.state.loginToken);
+    //             this.handleLoginWithToken();
+    //         });
+    // }
+    // 
+    // handleLoginWithToken = () => {
+    //     const token = this.state.loginToken;
 
-    handleLoginWithToken = () => {
-        const token = this.state.loginToken;
-
-        const headers = {
-            'Content-Type': 'application/json'
-        }
-        axios.post('http://localhost:5000/login/token', {
-            login_token: token,
-        }, {headers: headers}).then(res => {
-            console.log(res)
-            if (res.data.statusCode === 200) {
-                const verifiedUser = res.data.user;
-                console.log(verifiedUser)
-                this.props.onLoginSuccess(verifiedUser);
-            } else {
-                console.log('token did not exist');
-            }
-        })
-    }
+    //     const headers = {
+    //         'Content-Type': 'application/json'
+    //     }
+    //     axios.post('http://localhost:5000/login/token', {
+    //         login_token: token,
+    //     }, {headers: headers}).then(res => {
+    //         console.log(res)
+    //         if (res.data.statusCode === 200) {
+    //             const verifiedUser = res.data.user;
+    //             console.log(verifiedUser)
+    //             this.props.onLoginSuccess(verifiedUser);
+    //         } else {
+    //             console.log('token did not exist');
+    //         }
+    //     })
+    // }
 
     handleLogin = (event) => {
         event.preventDefault();
@@ -61,7 +62,7 @@ class Login extends React.Component {
             if (res.data.statusCode === 200) {
                 const verifiedUser = res.data.user;
                 console.log(verifiedUser)
-                this.setState({loginToken: verifiedUser.loginToken}, () => {
+                this.setState({userId: verifiedUser.id}, () => {
                     this.props.onLoginSuccess(verifiedUser);
                 });
             }
@@ -94,4 +95,4 @@ class Login extends React.Component {
     }
 }
 
-export default withRouter(Login);
+export default Login;

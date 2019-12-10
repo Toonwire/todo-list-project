@@ -1,7 +1,7 @@
 import React from 'react';
 import axios from 'axios';
 import './Register.css';
-import { Redirect } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 
 class Register extends React.Component {
@@ -12,12 +12,12 @@ class Register extends React.Component {
 
         this.state = {
             user: {
+                id: null,
                 username: "",
                 firstName: "",
                 lastName: "",            
                 password: "",
                 confirmPassword: "",
-                id: null,
             },
         }
     }
@@ -42,7 +42,7 @@ class Register extends React.Component {
                 const resUser = res.data.user;
                 console.log(resUser);
 
-                const loggedInUser = this.state.user;
+                let loggedInUser = this.state.user;
                 loggedInUser.id = resUser.id;
 
                 this.setState({user: loggedInUser});
@@ -80,36 +80,39 @@ class Register extends React.Component {
     }
 
     render() {
-        if (this.state.user.loginToken)
-            return (
-                <Redirect to='/login' />
-            )
+        // if (this.state.user.id)
+        //     return (
+        //         <Redirect to='/login' />
+        //     )
 
         return (
-			<form className={"register-form" + (this.state.user.loginToken ? " success" : "")} onSubmit={this.register}>
+            <form className={"register-form" + (this.state.user.id ? " success" : "")} onSubmit={this.register}>
                 <h1>
                     {(() => {
-                        console.log('login-token: ' + this.state.user.loginToken)
-                        if (this.state.user.loginToken) return "Success"
+                        console.log('user id: ' + this.state.user.id);
+                        if (this.state.user.id) return "Success"
                         return "Register"
                     })()}
 
                 </h1>
                 
-				<p>Username:</p>
-				<input type="text" required maxLength="40" size="20" placeholder="" onChange={this.handleUsernameChange}/>
-				<p>First name:</p>
-				<input type="text" required maxLength="40" size="20" placeholder="" onChange={this.handleFirstNameChange}/>
-				<p>Last name:</p>
-				<input type="text" required maxLength="40" size="20" placeholder="" onChange={this.handleLastNameChange}/>
-				<p>Password:</p>
-				<input type="password" required maxLength="80" size="20" placeholder="" onChange={this.handlePasswordChange}/>
-				<p>Confirm password:</p>
-				<input type="password" required maxLength="80" size="20" placeholder="" onChange={this.handleConfirmPasswordChange}/>
-				<br/>
+                <p>Username:</p>
+                <input type="text" required maxLength="40" size="20" placeholder="" onChange={this.handleUsernameChange}/>
+                <p>First name:</p>
+                <input type="text" required maxLength="40" size="20" placeholder="" onChange={this.handleFirstNameChange}/>
+                <p>Last name:</p>
+                <input type="text" required maxLength="40" size="20" placeholder="" onChange={this.handleLastNameChange}/>
+                <p>Password:</p>
+                <input type="password" required maxLength="80" size="20" placeholder="" onChange={this.handlePasswordChange}/>
+                <p>Confirm password:</p>
+                <input type="password" required maxLength="80" size="20" placeholder="" onChange={this.handleConfirmPasswordChange}/>
+                <br/>
                 
-				<input id="btn_submit" type="submit" name="submit"/>
-			</form>
+                <input id="btn_submit" type="submit" name="submit"/>
+                <div id="login_link">
+                    {(this.state.user.id ? <Link to="/login">log in</Link> : "") }
+                </div>
+            </form>
 		);
     }
 }

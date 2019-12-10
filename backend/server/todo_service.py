@@ -141,8 +141,8 @@ def create_user():
         cursor.fetchall()
         
     
-        if (cursor.rowcount > 0): return jsonify({"errMsg": "Username already in use"}), 401
-        if user_pw != user_cpw: return jsonify({"errMsg": "Passwords did not match"}), 402
+        if (cursor.rowcount > 0): return jsonify({"errMsg": "Username already in use"}), 409
+        if user_pw != user_cpw: return jsonify({"errMsg": "Passwords did not match"}), 400
         
         salt = generate_salt_csprng()
         salted_password = user_pw + salt
@@ -166,7 +166,7 @@ def create_user():
 #        response.set_cookie('_session_id', session_id, httponly=True)
             
     except mysql.connector.Error:
-        return jsonify({"errMsg": "Database error"}), 503
+        return jsonify({"errMsg": "Database error"}), 502
         
     finally:
         if (connection.is_connected()):
@@ -180,7 +180,7 @@ def create_user():
 @app.route("/login", methods=["POST"])
 def login_user():
     if request.headers['Content-Type'] != 'application/json':
-        return jsonify({"errMsg": "Content-Type header did not match required value 'application/json', was " + request.headers['Content-Type']}), 401
+        return jsonify({"errMsg": "Content-Type header did not match required value 'application/json', was " + request.headers['Content-Type']}), 406
     
     connection = connect('db', 'todos', 'root', 'rootroot')
     if (connection is None):
@@ -196,7 +196,7 @@ def login_user():
         cursor.execute("SELECT id, salt, pw_hash FROM users WHERE username=(%s)", (username,))
         user_credentials = cursor.fetchone()
         if user_credentials is None:
-            return jsonify({"errMsg": "User does not exist"}), 402
+            return jsonify({"errMsg": "User not found"}), 404
         
         user_id = user_credentials[0]
         user_salt = user_credentials[1]
@@ -214,7 +214,7 @@ def login_user():
             return jsonify({"user": user, "statusMsg": "User logged in"}), 200
             
     except mysql.connector.Error:
-        return jsonify({"errMsg": "Database error"}), 503
+        return jsonify({"errMsg": "Database error"}), 502
         
     finally:
         if (connection.is_connected()):
@@ -276,7 +276,7 @@ def login_user():
 @app.route("/todolists", methods=["POST"])
 def insert_todolists():
     if request.headers['Content-Type'] != 'application/json':
-        return jsonify({"errMsg": "Content-Type header did not match required value 'application/json', was " + request.headers['Content-Type']}), 401
+        return jsonify({"errMsg": "Content-Type header did not match required value 'application/json', was " + request.headers['Content-Type']}), 406
     
     req_data = request.get_json()
    
@@ -307,7 +307,7 @@ def insert_todolists():
         return jsonify({"statusMsg": "Inserts were successful"}), 201
          
     except mysql.connector.Error:
-        return jsonify({"errMsg": "Database error"}), 503
+        return jsonify({"errMsg": "Database error"}), 502
         
     finally:
         if (connection.is_connected()):
@@ -341,7 +341,7 @@ def get_todolists():
         return jsonify({"todo_lists": todo_lists, "statusMsg": "Successfully fetched todo lists belonging to user"}), 200
              
     except mysql.connector.Error:
-        return jsonify({"errMsg": "Database error"}), 503
+        return jsonify({"errMsg": "Database error"}), 502
         
     finally:
         if (connection.is_connected()):
@@ -376,7 +376,7 @@ def insert_todolist():
         return jsonify({"todo_list": todo_list, "statusMsg": "New todolist inserted"}), 201
 
     except mysql.connector.Error:
-        return jsonify({"errMsg": "Database error"}), 503
+        return jsonify({"errMsg": "Database error"}), 502
         
     finally:
         if (connection.is_connected()):
@@ -414,7 +414,7 @@ def update_todo(): # change completed
 
             
     except mysql.connector.Error:
-        return jsonify({"errMsg": "Database error"}), 503
+        return jsonify({"errMsg": "Database error"}), 502
         
     finally:
         if (connection.is_connected()):
@@ -443,7 +443,7 @@ def clear_completed_todos():
         return jsonify({"statusMsg": "Cleared all completed todos from todolist with id: " + str(todolist_id)}), 200
 
     except mysql.connector.Error:
-        return jsonify({"errMsg": "Database error"}), 503
+        return jsonify({"errMsg": "Database error"}), 502
         
     finally:
         if (connection.is_connected()):
@@ -473,7 +473,7 @@ def delete_todo():
         return jsonify({"statusMsg": "Todo deleted successfully"}), 200
 
     except mysql.connector.Error:
-        return jsonify({"errMsg": "Database error"}), 503
+        return jsonify({"errMsg": "Database error"}), 502
         
     finally:
         if (connection.is_connected()):
@@ -512,7 +512,7 @@ def insert_todo():
 
             
     except mysql.connector.Error:
-        return jsonify({"errMsg": "Database error"}), 503
+        return jsonify({"errMsg": "Database error"}), 502
         
     finally:
         if (connection.is_connected()):
@@ -534,7 +534,7 @@ def get_todos():
         return jsonify({'todo_items': todo_items, "statusMsg": "Successfully fetched todo items"}), 200
     
     except mysql.connector.Error:
-        return jsonify({"errMsg": "Database error"}), 503
+        return jsonify({"errMsg": "Database error"}), 502
         
     finally:
         if (connection.is_connected()):

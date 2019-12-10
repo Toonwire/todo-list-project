@@ -1,0 +1,29 @@
+version: '3.0'
+
+services:
+
+    backend:
+      build: ./backend
+      links:
+        - db
+      ports:
+        - "5000:5000"
+
+    db:
+      image: mysql:8.0.18
+      ports:
+        - "5050:3306"
+      environment:
+        MYSQL_ROOT_PASSWORD: rootroot
+      volumes:
+        - ./database:/docker-entrypoint-initdb.d/:ro
+
+    #frontend:
+    #  build: ./frontend
+    #  links:
+    #    - backend
+    #  ports:
+    #    - "3000:3000"
+
+
+

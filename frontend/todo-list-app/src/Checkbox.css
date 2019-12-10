@@ -1,0 +1,8 @@
+.checkbox {
+    vertical-align: middle;
+    display: inline;
+}
+
+.checkbox input {
+    vertical-align: middle;
+}

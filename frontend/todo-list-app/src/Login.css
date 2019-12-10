@@ -1,0 +1,47 @@
+
+.login-form {
+    padding: 60px 40px;
+    border-radius: 24px;
+    background-color:  #222831;
+    align-items: center;
+    justify-content: center;
+    color: #FEE6C0;
+    text-align: center;
+  }
+  
+.login-form input, select {
+    margin: 0 .25rem;
+    width: 50%;
+    border: 1px solid #222831;
+    border-left: 8px solid;
+    border-radius: 10px;
+    transition: border-color .5s ease-out;
+    padding: 8px 8px;
+
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+  
+.login-form input:optional {
+    border-left-color: #888;
+}
+.login-form input:required {
+    border-left-color: #E26151;
+}
+.login-form select:required {
+    border-left-color: #E26151;
+}
+  
+  
+#btn_submit {
+    border: 0px;
+    margin-top: 20px;
+    padding: 8px;
+    background-color: #FEE6C0;
+}
+
+#btn_submit:disabled{
+    background-color: rgb(184, 168, 149);
+}
+  

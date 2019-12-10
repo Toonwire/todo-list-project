@@ -38,15 +38,13 @@ class Register extends React.Component {
             confirmPassword: user.confirmPassword,
         }, {headers: headers}).then(res => {
             console.log(res)
-            if (res.data.statusCode === 200) {
-                const resUser = res.data.user;
-                console.log(resUser);
+            const resUser = res.data.user;
+            console.log(resUser);
 
-                let loggedInUser = this.state.user;
-                loggedInUser.id = resUser.id;
+            let loggedInUser = this.state.user;
+            loggedInUser.id = resUser.id;
 
-                this.setState({user: loggedInUser});
-            }
+            this.setState({user: loggedInUser});
         }).catch(err => {
             console.log(err)
         })
@@ -109,7 +107,7 @@ class Register extends React.Component {
                 <br/>
                 
                 <input id="btn_submit" type="submit" name="submit"/>
-                <div id="login_link">
+                <div className="form-response">
                     {(this.state.user.id ? <Link to="/login">log in</Link> : "") }
                 </div>
             </form>

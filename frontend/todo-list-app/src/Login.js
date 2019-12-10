@@ -60,13 +60,11 @@ class Login extends React.Component {
             password: password,
         }, {headers: headers}).then(res => {
             console.log(res)
-            if (res.status === 200) {
-                const verifiedUser = res.data.user;
-                console.log(verifiedUser)
-                this.setState({userId: verifiedUser.id}, () => {
-                    this.props.onLoginSuccess(verifiedUser);
-                });
-            }
+            const verifiedUser = res.data.user;
+            console.log(verifiedUser)
+            this.setState({userId: verifiedUser.id}, () => {
+                this.props.onLoginSuccess(verifiedUser);
+            });
         }).catch(err => {
             console.log(err.response);
             this.setState({loginFailed: true});

@@ -42,21 +42,19 @@ class TodoList extends React.Component {
                 todolist_id: todoListId,
             }).then(res => {
                 console.log(res)
-                if (res.status === 200) {
 
-                    const insertedTodo = res.data.todo;
-                    const todo = {
-                        id: insertedTodo.id,
-                        label: insertedTodo.label,
-                        completed: insertedTodo.completed,
-                        due_date: insertedTodo.due_date,
-                    }
-
-                    let allTodos = this.state.todos;
-                    allTodos.push(todo);
-                    this.setState({todos: allTodos, newTodo: {id: 0, label: "", completed: false, dueDate: null}});
-                    this.handleTodoListChange();
+                const insertedTodo = res.data.todo;
+                const todo = {
+                    id: insertedTodo.id,
+                    label: insertedTodo.label,
+                    completed: insertedTodo.completed,
+                    due_date: insertedTodo.due_date,
                 }
+
+                let allTodos = this.state.todos;
+                allTodos.push(todo);
+                this.setState({todos: allTodos, newTodo: {id: 0, label: "", completed: false, dueDate: null}});
+                this.handleTodoListChange();
             })
         } else {
             console.log("cannot insert empty todo");
@@ -87,25 +85,23 @@ class TodoList extends React.Component {
             due_date: utcDate,
         }).then(res => {
             console.log(res)
-            if (res.status === 200) {
-                const resTodo = res.data.todo;
+            const resTodo = res.data.todo;
 
-                // var localDate = new Date(resTodo.due_date);
-                // localDate.setHours(localDate.getHours(), localDate.getMinutes() - new Date().getTimezoneOffset(), localDate.getSeconds());  // account for timezone offset
+            // var localDate = new Date(resTodo.due_date);
+            // localDate.setHours(localDate.getHours(), localDate.getMinutes() - new Date().getTimezoneOffset(), localDate.getSeconds());  // account for timezone offset
 
-                const updatedTodo = {
-                    id: resTodo.id,
-                    label: resTodo.label,
-                    completed: resTodo.completed,
-                    dueDate: resTodo.due_date,
-                }
-
-                todo.completed = updatedTodo.completed;
-                todo.due_date = updatedTodo.dueDate;
-                this.setState({todos: todos}, () => {
-                    this.handleTodoListChange();
-                });
+            const updatedTodo = {
+                id: resTodo.id,
+                label: resTodo.label,
+                completed: resTodo.completed,
+                dueDate: resTodo.due_date,
             }
+
+            todo.completed = updatedTodo.completed;
+            todo.due_date = updatedTodo.dueDate;
+            this.setState({todos: todos}, () => {
+                this.handleTodoListChange();
+            });
         })
     }
 
@@ -135,11 +131,10 @@ class TodoList extends React.Component {
         axios.patch('http://localhost:5000/todos/completed', {
             todolist_id: todoListId
         }).then(res => {
-            if (res.status === 200) {
-                this.setState({todos: activeTodos}, () => {
-                    this.handleTodoListChange();
-                });
-            }
+            console.log(res);
+            this.setState({todos: activeTodos}, () => {
+                this.handleTodoListChange();
+            });
         })
     }
 

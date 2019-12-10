@@ -38,22 +38,22 @@ class TodoListApp extends React.Component {
 				user_id: this.state.user.id
 			}
 		}).then(res => {
-				console.log(res)
-				let initTodoListTabs = []
-				const todoLists = res.data['todo_lists'] // [{..},{..}, ..]
-				todoLists.forEach(todoList => {
-					const listId = todoList['id'] 
-					const title = todoList['title']
-					const todoItems = todoList['todo_items']
-					const jsxTodoList = <TodoList key={listId} id={listId} todos={todoItems} filter={"filter-all"} onTodoListChange={this.onTodoListChange}/>
-					initTodoListTabs.push({id: listId, label: title, isActive: false, todoList: jsxTodoList})
-				});
+			console.log(res)
+			let initTodoListTabs = []
+			const todoLists = res.data['todo_lists'] // [{..},{..}, ..]
+			todoLists.forEach(todoList => {
+				const listId = todoList['id'] 
+				const title = todoList['title']
+				const todoItems = todoList['todo_items']
+				const jsxTodoList = <TodoList key={listId} id={listId} todos={todoItems} filter={"filter-all"} onTodoListChange={this.onTodoListChange}/>
+				initTodoListTabs.push({id: listId, label: title, isActive: false, todoList: jsxTodoList})
+			});
 
-				initTodoListTabs[0]['isActive'] = true
-				this.setState({todoListTabs: initTodoListTabs})
-			}).catch(err => {
-				console.log(err.response);
-			})
+			initTodoListTabs[0]['isActive'] = true
+			this.setState({todoListTabs: initTodoListTabs})
+		}).catch(err => {
+			console.log(err.response);
+		})
 	}
 
 
@@ -115,20 +115,16 @@ class TodoListApp extends React.Component {
 			user_id: this.state.user.id
 		}).then(res => {
 			console.log(res)
-			// response > data > todo_list carries inserted todolist object (json)
-			if (res.status === 200) {
-
-				const todoList = res.data.todo_list;
-				const newTab = {
-					id: todoList.id,
-					label: todoList.title,
-					isActive: false,
-					todoList: <TodoList key={todoList.id} id={todoList.id} todos={[]} filter={"filter-all"} onTodoListChange={this.onTodoListChange}/>,
-				}
-
-				tabs.push(newTab);
-				this.setState({todoListTabs: tabs, newTabLabel: ""});
+			const todoList = res.data.todo_list;
+			const newTab = {
+				id: todoList.id,
+				label: todoList.title,
+				isActive: false,
+				todoList: <TodoList key={todoList.id} id={todoList.id} todos={[]} filter={"filter-all"} onTodoListChange={this.onTodoListChange}/>,
 			}
+
+			tabs.push(newTab);
+			this.setState({todoListTabs: tabs, newTabLabel: ""});
 		});		
 	}
 

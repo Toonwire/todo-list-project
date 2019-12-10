@@ -196,7 +196,7 @@ def login_user():
         cursor.execute("SELECT id, salt, pw_hash FROM users WHERE username=(%s)", (username,))
         user_credentials = cursor.fetchone()
         if user_credentials is None:
-            return jsonify({"errMsg": "User not found"}), 404
+            return jsonify({"errMsg": "User does not exist"}), 401
         
         user_id = user_credentials[0]
         user_salt = user_credentials[1]
@@ -212,7 +212,9 @@ def login_user():
             values = (user_id, username)
             user = dict(zip(keys, values))
             return jsonify({"user": user, "statusMsg": "User logged in"}), 200
-            
+        else:
+            return jsonify({"errMsg": "Invalid credentials"}), 401
+        
     except mysql.connector.Error:
         return jsonify({"errMsg": "Database error"}), 502
         

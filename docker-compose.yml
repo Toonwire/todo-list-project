@@ -1,29 +1,32 @@
-version: '3.0'
+version: '3.1'
 
 services:
+  backend:
+    build: ./backend
+    links:
+      - db
+    ports:
+      - "5000:5000"
+    secrets:
+      - api_secret_key
 
-    backend:
-      build: ./backend
-      links:
-        - db
-      ports:
-        - "5000:5000"
+  db:
+    image: mysql:8.0.18
+    ports:
+      - "5050:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootroot
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d/:ro
 
-    db:
-      image: mysql:8.0.18
-      ports:
-        - "5050:3306"
-      environment:
-        MYSQL_ROOT_PASSWORD: rootroot
-      volumes:
-        - ./database:/docker-entrypoint-initdb.d/:ro
+  #frontend:
+  #  build: ./frontend
+  #  links:
+  #    - backend
+  #  ports:
+  #    - "3000:3000"
 
-    #frontend:
-    #  build: ./frontend
-    #  links:
-    #    - backend
-    #  ports:
-    #    - "3000:3000"
-
-
-
+secrets:
+  api_secret_key:
+    file: ./secrets/api_secret_key.txt
+    

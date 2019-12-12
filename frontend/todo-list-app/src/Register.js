@@ -36,7 +36,7 @@ class Register extends React.Component {
             last_name: user.lastName,
             password: user.password,
             confirmPassword: user.confirmPassword,
-        }, {headers: headers}).then(res => {
+        }, {headers: headers, withCredentials: true}).then(res => {
             console.log(res)
             const resUser = res.data.user;
             console.log(resUser);
@@ -48,7 +48,6 @@ class Register extends React.Component {
         }).catch(err => {
             console.log(err)
         })
-        
     }
 
     handleUsernameChange = (e) => {

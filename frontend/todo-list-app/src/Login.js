@@ -17,38 +17,23 @@ class Login extends React.Component {
             loginFailed: false,
             // loginToken: this.props.loginToken,
         }
+        
     }
 
-    // componentDidMount(){
-    //     if (this.props.location.state && this.props.location.state.loginToken) // check if there is a redirect state 
-    //         this.setState({loginToken: this.props.location.state.loginToken}, () => {
-    //             console.log(this.state.loginToken);
-    //             this.handleLoginWithToken();
-    //         });
-    // }
-    // 
-    // handleLoginWithToken = () => {
-    //     const token = this.state.loginToken;
-
-    //     const headers = {
-    //         'Content-Type': 'application/json'
-    //     }
-    //     axios.post('http://localhost:5000/login/token', {
-    //         login_token: token,
-    //     }, {headers: headers}).then(res => {
-    //         console.log(res)
-    //         if (res.data.statusCode === 200) {
-    //             const verifiedUser = res.data.user;
-    //             console.log(verifiedUser)
-    //             this.props.onLoginSuccess(verifiedUser);
-    //         } else {
-    //             console.log('token did not exist');
-    //         }
-    //     })
-    // }
+    componentDidMount(){
+        // try to login automatically (ie. cookie-based)
+        console.log("try auto login");
+        this.handleLogin(null);
+        console.log("got here");
+    }
 
     handleLogin = (event) => {
-        event.preventDefault();
+        try {
+            event.preventDefault();
+        } catch (err) {
+            console.log("login via cookie");
+        }
+
         const username = this.state.username;
         const password = this.state.password;
         
@@ -58,10 +43,9 @@ class Login extends React.Component {
         axios.post('http://localhost:5000/login', {
             username: username,
             password: password,
-        }, {headers: headers}).then(res => {
-            console.log(res)
+        }, {headers: headers, withCredentials: true}).then(res => {
+            console.log(res);
             const verifiedUser = res.data.user;
-            console.log(verifiedUser)
             this.setState({userId: verifiedUser.id}, () => {
                 this.props.onLoginSuccess(verifiedUser);
             });
@@ -80,6 +64,7 @@ class Login extends React.Component {
     }
 
     render() {
+
         return (
 			<form className="login-form" onSubmit={this.handleLogin}>
 				<h1>Login</h1>

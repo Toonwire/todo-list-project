@@ -36,7 +36,8 @@ class TodoListApp extends React.Component {
 		axios.get('http://localhost:5000/todolists', {
 			params: {
 				user_id: this.state.user.id
-			}
+			},
+			withCredentials: true
 		}).then(res => {
 			console.log(res)
 			let initTodoListTabs = []
@@ -106,7 +107,6 @@ class TodoListApp extends React.Component {
 		const newTabTitle = this.state.newTabLabel
 
 		if (newTabTitle.trim().length === 0) {
-			console.log("cannot insert empty todo list");
 			return;
 		}
 
@@ -114,7 +114,6 @@ class TodoListApp extends React.Component {
 			title: newTabTitle.trim(),
 			user_id: this.state.user.id
 		}).then(res => {
-			console.log(res)
 			const todoList = res.data.todo_list;
 			const newTab = {
 				id: todoList.id,
@@ -142,20 +141,36 @@ class TodoListApp extends React.Component {
 	}
 	
 	onLoginSuccess = (user) => {
-		// user: {id, username, login_token}
 		const loggedInUser = {
 			id: user.id,
 			username: user.username,
-			// loginToken: user.login_token,
 		}
-		console.log(user.id);
 		this.setState({user: loggedInUser}, this.getUserTodoLists);
 	}
 
-	
+	handleLogout = () => {
+		const loggedInUser = this.state.user;
+        const headers = {
+            'Content-Type': 'application/json'
+        }
+        axios.post('http://localhost:5000/logout', {
+			user_id: loggedInUser.id
+        }, {headers: headers, withCredentials: true}).then(res => {
+			console.log(res);
+			// reset state
+            this.setState({
+				user: {id: null, username: ""},
+				todoListTabs: [],
+				newTabTitle: "",
+			});
+
+        }).catch(err => {
+            console.log(err.response);
+        });
+	}
+
 	render() {  
 		const isUserLoggedIn = this.state.user.id !== null;
-		console.log("Is user logged in: " + isUserLoggedIn);
 
 		return (
 			<Router>			
@@ -165,6 +180,8 @@ class TodoListApp extends React.Component {
 						render = {() =>
 							isUserLoggedIn ?
 							<div className="todo-list-app">
+								<h1>{"Welcome " + (this.state.user.username)}</h1>
+								<Link to="/logout">log out</Link>
 								<div>
 									<input className="todo-list-new" type="text" placeholder="New todo list" value={this.state.newTabLabel} onChange={this.onNewTabChange} onKeyDown={this.handleKeyDown} />
 								</div>
@@ -180,6 +197,12 @@ class TodoListApp extends React.Component {
 						path="/login"
 						render = {() =>
 							isUserLoggedIn ? <Redirect to='/todolists'/> : <Login onLoginSuccess={this.onLoginSuccess}/>
+						}
+					/>
+					<Route 
+						path="/logout"
+						render = {() =>
+							isUserLoggedIn ? this.handleLogout() : <Redirect to="/login"/>
 						}
 					/>
 					<Route exact path="/register">

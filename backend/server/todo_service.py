@@ -5,19 +5,22 @@ Created on Fri Nov  8 09:45:39 2019
 @author: lvi
 """
 
+import os
 from flask import Flask, request, jsonify #, abort, flash, url_for, redirect
 import secrets
 import hashlib
-
+import hmac
+import binascii
 import mysql.connector
+from get_docker_secret import get_docker_secret
 
 app = Flask(__name__)
 
 
 
-def generate_salt_csprng():
+def generate_salt_csprng(n=64):
     possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
-    salt = ''.join(secrets.choice(possible) for i in range(64))
+    salt = ''.join(secrets.choice(possible) for i in range(n))
     return salt
 
 
@@ -41,13 +44,17 @@ def update_login_token(user_id):
     login_token = None
     cursor = connection.cursor(prepared=True)
     try:
-        new_login_token = generate_token()
+        new_login_token = generate_token(nbytes=32)
         cursor.execute("UPDATE users SET login_token=(%s) WHERE id=(%s)", (new_login_token, user_id))
         connection.commit()
         
         ## setup return data 
         cursor.execute("SELECT login_token FROM users WHERE id = %s", (user_id,))
-        login_token = cursor.fetchone()[0]
+        
+        token_data = cursor.fetchone()
+        if (token_data):
+            print(token_data)
+            login_token = token_data[0]
 
             
     except mysql.connector.Error as error:
@@ -61,49 +68,15 @@ def update_login_token(user_id):
     
     return login_token
     
-#    
-#def login_required(protected_function):
-#    @wraps(protected_function)
-#    def wrapper (*args, **kwargs):
-#        encoded_session_id = request.cookies.get('_session_id')
-#        print(request)
-#        if encoded_session_id:
-#            connection = connect('db', 'todos', 'root', 'rootroot')
-#            if (connection is None):
-#                return jsonify({"Error": "Could not connect to database", "statusCode": 503, "statusMsg": "Incorrect db credentials or schema does not exist"})
-#            
-#            user_id = None
-#            try:
-#                payload = jwt.decode(encoded_session_id, app.config['SECRET_KEY'], algorithm='HS256')          
-#                
-#                cursor = connection.cursor(prepared=True)
-#                cursor.execute("SELECT id FROM users WHERE username=(%s)", (user_username,))
-#                
-#                if user_id:
-#                    return protected_function(*args, **kwargs)
-#                
-#                else: 
-#                    flash("Session exists, but no user has that session (deleted)")
-#                    return redirect(url_for('login'))
-#                    
-#
-#            except jwt.InvalidSignatureError:
-#                response = jsonify({"Error": "Invalid signature", "statusCode": 401})
-#                abort(401, response)
-#                
-#            except Exception as e:
-#                return abort(402, jsonify({"Error": e, "statusCode": 401}))
-#            
-#            finally:
-#                if (connection.is_connected()):
-#                    cursor.close()
-#                    connection.close()
-#                    print("Connection closed")
-#        else:
-#            flash("No session, please log in")
-#            return redirect(url_for('login'))
-#    return wrapper
-        
+
+
+def sign_sha256(key, message):
+    byte_key = binascii.unhexlify(key)
+    message = message.encode()
+    return hmac.new(byte_key, message, hashlib.sha256).hexdigest()
+
+
+ 
 cors_white_list = ['http://localhost:3000']
 @app.after_request
 def after_request(response): 
@@ -111,7 +84,7 @@ def after_request(response):
     if req_origin in cors_white_list:
         response.headers.add('Access-Control-Allow-Origin', req_origin)
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-#        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
 #        response.headers.add('Access-Control-Allow-Headers', 'Cache-Control')
 #        response.headers.add('Access-Control-Allow-Headers', 'X-Requested-With')
 #        response.headers.add('Access-Control-Allow-Headers', 'Authorization')
@@ -148,7 +121,7 @@ def create_user():
         salted_password = user_pw + salt
         pw_hash = hash_string(salted_password)
         
-        login_token = generate_token()
+        login_token = generate_token(32)
         pw_token = generate_token()
         
 #        session_id = jwt.encode({'user_username': user_username}, app.config['SECRET_KEY'], algorithm='HS256')
@@ -157,13 +130,18 @@ def create_user():
         connection.commit() 
         
         
+        
         ## setup return data 
         cursor.execute("SELECT id, username FROM users WHERE username = %s", (user_username,))
         keys = ("id", "username")
         user = dict(zip(keys, cursor.fetchone()))
         
-        return jsonify({"user": user, "statusMsg": "User created successfully"}), 201
-#        response.set_cookie('_session_id', session_id, httponly=True)
+        print("register cookie...")        
+        cookie = make_rememberme_cookie(user.get('id'), login_token)
+        
+        response = jsonify({"user": user, "statusMsg": "User created successfully"})
+        response.set_cookie('_rememberme', cookie)
+        return response, 201
             
     except mysql.connector.Error:
         return jsonify({"errMsg": "Database error"}), 502
@@ -177,6 +155,51 @@ def create_user():
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 
+
+def validate_rememberme_cookie(cookie):
+    user_id, login_token, mac = cookie.split(':')
+    if (sign_sha256(get_docker_secret('api_secret_key'), ':'.join([user_id, login_token])) != mac):
+        return False
+    
+    connection = connect('db', 'todos', 'root', 'rootroot')
+    if (connection is None):
+        return False
+    cursor = connection.cursor(prepared=True)
+    
+    try:
+        cursor.execute("SELECT login_token FROM users WHERE id=(%s)", (user_id,))
+        
+        user_token = cursor.fetchone()
+        if user_token is None:
+            return False
+        
+        user_login_token = user_token[0]
+        print('userlogintoken=' +user_login_token)
+        print('loginToken=' +login_token)
+        
+        return user_login_token == login_token
+        
+        
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 502
+        
+    finally:
+        if (connection.is_connected()):
+            cursor.close()
+            connection.close()
+            print("Connection closed")
+    
+
+def make_rememberme_cookie(user_id, login_token):
+    cookie = ':'.join([str(user_id), login_token])
+    mac = sign_sha256(get_docker_secret('api_secret_key'), cookie)
+    cookie = ':'.join([cookie, mac])
+
+    print('mac: ' + mac)
+    print('cookie: ' + cookie)
+            
+    return cookie
+
 @app.route("/login", methods=["POST"])
 def login_user():
     if request.headers['Content-Type'] != 'application/json':
@@ -186,34 +209,73 @@ def login_user():
     if (connection is None):
         return jsonify({"errMsg": "Could not connect to database"}), 503
     
+    auth_by_cookie = False
+    if (request.cookies.get('_rememberme')):
+        auth_by_cookie = validate_rememberme_cookie(request.cookies.get('_rememberme'))
+        
+        
     user = None
     cursor = connection.cursor(prepared=True)
     try:
-        req_data = request.get_json()
-        username = req_data['username']       
-        password = req_data['password']
         
-        cursor.execute("SELECT id, salt, pw_hash FROM users WHERE username=(%s)", (username,))
-        user_credentials = cursor.fetchone()
-        if user_credentials is None:
-            return jsonify({"errMsg": "User does not exist"}), 401
+        if (auth_by_cookie):
+            user_id = request.cookies.get('_rememberme').split(':')[0]
+            cursor.execute("SELECT username FROM users WHERE id=(%s)", (user_id,))
+            
+            
+            username = cursor.fetchone()
+            if (username):
+                
+                 ## store new login token with user 
+                new_login_token = update_login_token(user_id)
+                cookie = make_rememberme_cookie(user_id, new_login_token) if new_login_token else ''
+                
+                ## setup return data 
+                keys = ("id", "username")
+                values = (user_id, username)
+                user = dict(zip(keys, values))
+            
+                response = jsonify({"user": user, "statusMsg": "User logged in by cookie"})
+                response.set_cookie('_rememberme', cookie)
+                return response, 200
+            
+            return jsonify({"errMsg": "User must have been deleted"}), 401
         
-        user_id = user_credentials[0]
-        user_salt = user_credentials[1]
-        user_pw_hash = user_credentials[2]
-
-        salted_password = password + user_salt
-        pw_hash = hash_string(salted_password)
-        
-        if (pw_hash == user_pw_hash):
-            ## login success
-            ## setup return data 
-            keys = ("id", "username")
-            values = (user_id, username)
-            user = dict(zip(keys, values))
-            return jsonify({"user": user, "statusMsg": "User logged in"}), 200
         else:
-            return jsonify({"errMsg": "Invalid credentials"}), 401
+            req_data = request.get_json()
+            username = req_data['username']       
+            password = req_data['password']
+            
+            cursor.execute("SELECT id, salt, pw_hash FROM users WHERE username=(%s)", (username,))
+            user_credentials = cursor.fetchone()
+            if user_credentials is None:
+                return jsonify({"errMsg": "User does not exist"}), 401
+            
+            user_id = user_credentials[0]
+            user_salt = user_credentials[1]
+            user_pw_hash = user_credentials[2]
+    
+            salted_password = password + user_salt
+            pw_hash = hash_string(salted_password)
+            
+            if (pw_hash == user_pw_hash):
+                ## login success
+                
+                ## store new login token with user 
+                new_login_token = update_login_token(user_id)
+                cookie = make_rememberme_cookie(user_id, new_login_token) if new_login_token else ''
+                
+                ## setup return data 
+                keys = ("id", "username")
+                values = (user_id, username)
+                user = dict(zip(keys, values))
+                
+                response = jsonify({"user": user, "statusMsg": "User logged in"})
+                response.set_cookie('_rememberme', cookie)
+                return response, 200
+            
+            else:
+                return jsonify({"errMsg": "Invalid credentials"}), 401
         
     except mysql.connector.Error:
         return jsonify({"errMsg": "Database error"}), 502
@@ -225,55 +287,22 @@ def login_user():
             print("Connection closed")
     
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
-#    print(request.cookies.get('_session_id'))
-#    if not request.cookies.get('_session_id'):
-#        response.set_cookie('_session_id', jwt.encode({'user_username': user_username}, app.config['SECRET_KEY'], algorithm='HS256'))
+
+
+
+@app.route("/logout", methods=["POST"])
+def logout_user():
+    req_data = request.get_json()
+    user_id = req_data['user_id']
+
+    if (user_id is None): 
+        return jsonify({"errMsg": "Cannot logout user"}), 401
     
-
-
-
-#@app.route("/login/token", methods=["POST"])
-#def login_user_with_token():
-#    if request.headers['Content-Type'] != 'application/json':
-#        return jsonify({"Error": "Unexpected Content-Type header", "statusCode": 503, "statusMsg": "Content-Type header did not match required value 'application/json', was " + request.headers['Content-Type']})
-#    
-#    connection = connect('db', 'todos', 'root', 'rootroot')
-#    if (connection is None):
-#        return jsonify({"Error": "Could not connect to database", "statusCode": 503, "statusMsg": "Incorrect credentials or schema does not exist"})
-#    
-#    user = None
-#    cursor = connection.cursor(prepared=True)
-#    try:
-#        req_data = request.get_json()
-#        token = req_data['login_token']  
-#        
-#        cursor.execute("SELECT id, username FROM users WHERE login_token=(%s)", (token,))
-#        user_credentials = cursor.fetchone()
-#        user_id = user_credentials[0]
-#        user_username = user_credentials[1]
-#        if not user_id: 
-#            response = jsonify({"Error": "Invalid token", "statusCode": 401, "statusMsg": "User is not registered"})
-#            abort(401, response)
-#
-#     
-#        ## setup return data 
-#        keys = ("id", "username", "login_token")
-#        values = (user_id, user_username, token)
-#        user = dict(zip(keys, values))
-#
-#            
-#    except mysql.connector.Error:
-#        return jsonify({"Error": "SQL failed", "statusCode": 503, "statusMsg": "Something went wrong trying to call database"})
-#        
-#    finally:
-#        if (connection.is_connected()):
-#            cursor.close()
-#            connection.close()
-#            print("Connection closed")
-#    
-#    response = jsonify({"user": user, "statusCode": 200, "statusMsg": "User logged in"})
-#    return response
-
+    print("LOGGING OUT USERID: " + str(user_id))
+    update_login_token(user_id) # change login token to make sure duplicates cant be used 
+    response = jsonify({"statusMsg": "User logged out"})
+    response.set_cookie('_rememberme', '')  # overwrite cookie to clear it
+    return response, 200
     
 @app.route("/todolists", methods=["POST"])
 def insert_todolists():
@@ -325,7 +354,6 @@ def insert_todolists():
 def get_todolists():
     connection = connect('db', 'todos', 'root', 'rootroot')
     todo_lists = []
-    
     try:
         user_id = request.args.get('user_id')
         

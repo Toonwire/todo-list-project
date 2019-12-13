@@ -136,7 +136,6 @@ class TodoListApp extends React.Component {
     }
     
     onNewTabChange = (e) => {
-		console.log("dont do this");
 		this.setState({newTabLabel: e.target.value});
 	}
 	

@@ -24,14 +24,15 @@ class Login extends React.Component {
         // try to login automatically (ie. cookie-based)
         console.log("try auto login");
         this.handleLogin(null);
-        console.log("got here");
     }
 
     handleLogin = (event) => {
+        var cookieLogin = false;
         try {
             event.preventDefault();
         } catch (err) {
             console.log("login via cookie");
+            cookieLogin = true;
         }
 
         const username = this.state.username;
@@ -51,7 +52,7 @@ class Login extends React.Component {
             });
         }).catch(err => {
             console.log(err.response);
-            this.setState({loginFailed: true});
+            this.setState({loginFailed: !cookieLogin});
         });
     }
 

@@ -156,27 +156,7 @@ class TodoList extends React.Component {
     }
 
 
-    render() {
-        function TodoItems(props) {
-            const todos = props.todos;
-            const listItems = todos.map((todo) => <TodoItem 
-                                                    key={todo.id} 
-                                                    id={todo.id} 
-                                                    label={todo.label} 
-                                                    completed={todo.completed} 
-                                                    dueDate={todo.due_date} 
-                                                    onTodoChange={props.onTodoChange} />);
-            
-
-
-            const filter = props.filter;
-            const filteredItems = listItems.filter((item) => filter === "filter-all" || (filter === "filter-active" && !item.props.completed) || (filter === "filter-completed" && item.props.completed));
-            return (
-                <ul>
-                    {filteredItems}
-                </ul>
-            )
-        }      
+    render() { 
         
         const SortableTodoContainer = SortableElement((props) => {
             return (
@@ -191,7 +171,7 @@ class TodoList extends React.Component {
                                                                         todo={todo}
                                                                         onTodoChange={this.updateTodo} />);
             const filter = props.filter;
-            const filteredItems = listItems.filter((item) => filter === "filter-all" || (filter === "filter-active" && !item.props.completed) || (filter === "filter-completed" && item.props.completed));
+            const filteredItems = listItems.filter((item) => filter === "filter-all" || (filter === "filter-active" && !item.props.todo.completed) || (filter === "filter-completed" && item.props.todo.completed));
             
             return (
                 <div className="todo-items">

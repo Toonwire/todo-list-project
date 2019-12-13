@@ -1,8 +1,10 @@
 import React from 'react';
 import './TodoList.css';
 import axios from 'axios';
-
+import {SortableContainer, SortableElement} from 'react-sortable-hoc';
+import arrayMove from 'array-move';
 import TodoItem from './TodoItem';
+
 
 
 class TodoList extends React.Component {
@@ -20,6 +22,21 @@ class TodoList extends React.Component {
             },
             filter: this.props.filter,
         }
+    }
+
+    onSortEnd = ({oldIndex, newIndex}) => {
+        this.setState({
+            todos: arrayMove(this.state.todos, oldIndex, newIndex)
+        });
+    }
+
+    arraySwap = (arr, from, to) => {
+        let swapped = JSON.parse(JSON.stringify(arr));
+        let tempFrom = JSON.parse(JSON.stringify(swapped[from]));
+        let tempTo = JSON.parse(JSON.stringify(swapped[to]));
+        swapped[from] = tempTo;
+        swapped[to] = tempFrom;
+        return swapped;
     }
 
     handleNewTodoChange = (e) => {
@@ -161,13 +178,35 @@ class TodoList extends React.Component {
             )
         }      
         
+        const SortableTodoContainer = SortableElement((props) => {
+            return (
+                <TodoItem key={props.todo.id} id={props.todo.id} label={props.todo.id} completed={props.todo.completed} dueDate={props.todo.due_date} onTodoChange={props.onTodoChange}/>
+            )
+        });
+
+        const TodoContainer = SortableContainer((props) => {
+            const listItems = props.todoItems.map((todo, index) => <SortableTodoContainer 
+                                                                        key={todo.id} 
+                                                                        index={index} 
+                                                                        todo={todo}
+                                                                        onTodoChange={this.updateTodo} />);
+            const filter = props.filter;
+            const filteredItems = listItems.filter((item) => filter === "filter-all" || (filter === "filter-active" && !item.props.completed) || (filter === "filter-completed" && item.props.completed));
+            
+            return (
+                <div className="todo-items">
+                    <ul>
+                        {filteredItems}
+                    </ul>
+                </div>
+            );
+        });
+
         return (
             <div className="content-wrapper">
                 <input className="todo-item-new" type="text" placeholder="What needs to be done?.." value={this.state.newTodo.label} onChange={this.handleNewTodoChange} onKeyDown={this.handleKeyDown}/>
                 <div className="todo-list">
-                        <div className="todo-items">
-                            <TodoItems todos={this.state.todos} filter={this.state.filter} onTodoChange={this.updateTodo}/>
-                        </div>
+                    <TodoContainer todoItems={this.state.todos} filter={this.state.filter} onSortEnd={this.onSortEnd} />
                 </div>          
                 <div className="footer">
                     <div className="row">

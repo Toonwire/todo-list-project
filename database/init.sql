@@ -15,7 +15,7 @@ CREATE TABLE users (
 INSERT INTO users
 	(username, first_name, last_name, pw_hash, salt, login_token, pw_token)
 VALUES
-	('admin', 'ad', 'min', '1232bfc5986e8c63a3e150ab4744bdda6bd45c1fe42afdfff2d885a5e0ccdea4', 'LQlsQuGmV426uiO4SAwO5P0jQpMIxuu-tTakqhiBVumATlRWIlev8i-JmWFwt6xK', '51320759c4be6ff8a9d76ec1e781bffd30da87cc69cd69859258c51659ca14ffb42e10dba1deedea20750f6e3a77fd7f6e55be2d50b140fd99436f5a60777517', '05808b62f0c7c89f284b6ccc75c7519f2bc5a421a6013f8773b6827b7e82cf7ef8d7f592947b0225ec35bf91174128201c34d9895853eea442eef6186bbf561b');
+	('admin', 'ad', 'min', '1232bfc5986e8c63a3e150ab4744bdda6bd45c1fe42afdfff2d885a5e0ccdea4', 'LQlsQuGmV426uiO4SAwO5P0jQpMIxuu-tTakqhiBVumATlRWIlev8i-JmWFwt6xK', NULL, '05808b62f0c7c89f284b6ccc75c7519f2bc5a421a6013f8773b6827b7e82cf7ef8d7f592947b0225ec35bf91174128201c34d9895853eea442eef6186bbf561b');
 
 
 CREATE TABLE todo_list (

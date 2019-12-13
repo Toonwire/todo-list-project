@@ -62,12 +62,13 @@ class TodoItem extends React.Component {
     }
 
     handleDueDateChange = (date) => {
+        console.log(date)
         this.onTodoChange(this.state.completed, date);
     }
 
     render() {
         return (
-            <li>
+            // <li>
                 <div className={'todo-item ' + (this.state.completed ? 'completed ' : 'ongoing ' + this.state.dueState)}>
                     <Checkbox 
                         label={this.props.label}
@@ -89,7 +90,7 @@ class TodoItem extends React.Component {
                         {/* <button id="btn_edit_deadline"><img id="btn_edit_deadline_img" src={img_deadline}/>adasd</button>  */}
                     </div>
                 </div>
-            </li>
+            // </li>
         );
     }
 }

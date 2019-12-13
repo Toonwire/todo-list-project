@@ -85,7 +85,7 @@ class TodoList extends React.Component {
     }
 
 
-    updateTodo = (todoItem, isCompleted, dueDate) => {        
+    updateTodo = (todoItem, isCompleted, dueDate) => {    
         let todos = this.state.todos;
         let todo = todos.find(todo => {
             return todo.id === todoItem.props.id;
@@ -160,7 +160,7 @@ class TodoList extends React.Component {
         
         const SortableTodoContainer = SortableElement((props) => {
             return (
-                <TodoItem key={props.todo.id} id={props.todo.id} label={props.todo.id} completed={props.todo.completed} dueDate={props.todo.due_date} onTodoChange={props.onTodoChange}/>
+                <TodoItem key={props.todo.id} id={props.todo.id} label={props.todo.label} completed={props.todo.completed} dueDate={props.todo.due_date} onTodoChange={props.onTodoChange}/>
             )
         });
 
@@ -186,7 +186,7 @@ class TodoList extends React.Component {
             <div className="content-wrapper">
                 <input className="todo-item-new" type="text" placeholder="What needs to be done?.." value={this.state.newTodo.label} onChange={this.handleNewTodoChange} onKeyDown={this.handleKeyDown}/>
                 <div className="todo-list">
-                    <TodoContainer todoItems={this.state.todos} filter={this.state.filter} onSortEnd={this.onSortEnd} />
+                    <TodoContainer todoItems={this.state.todos} filter={this.state.filter} onSortEnd={this.onSortEnd} pressDelay={100} />
                 </div>          
                 <div className="footer">
                     <div className="row">

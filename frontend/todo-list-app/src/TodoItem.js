@@ -62,7 +62,6 @@ class TodoItem extends React.Component {
     }
 
     handleDueDateChange = (date) => {
-        console.log(date)
         this.onTodoChange(this.state.completed, date);
     }
 

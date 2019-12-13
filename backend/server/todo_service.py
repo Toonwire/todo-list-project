@@ -134,7 +134,7 @@ def create_user():
 
         cookie = make_rememberme_cookie(user.get('id'), login_token)
         response = jsonify({"user": user, "statusMsg": "User created successfully"})
-        response.set_cookie('_rememberme', cookie)
+        response.set_cookie('_rememberme', cookie, max_age=get_login_token_expiration_seconds())
         return response, 201
             
     except mysql.connector.Error:
@@ -225,7 +225,7 @@ def login_user():
                 user = dict(zip(keys, values))
             
                 response = jsonify({"user": user, "statusMsg": "User logged in by cookie"})
-                response.set_cookie('_rememberme', cookie)
+                response.set_cookie('_rememberme', cookie, max_age=get_login_token_expiration_seconds())
                 return response, 200
             
             return jsonify({"errMsg": "User must have been deleted"}), 401
@@ -260,7 +260,7 @@ def login_user():
                 user = dict(zip(keys, values))
                 
                 response = jsonify({"user": user, "statusMsg": "User logged in"})
-                response.set_cookie('_rememberme', cookie)
+                response.set_cookie('_rememberme', cookie, max_age=get_login_token_expiration_seconds())
                 return response, 200
             
             else:
@@ -554,6 +554,9 @@ def get_todos():
         
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
+
+def get_login_token_expiration_seconds():
+    return 60*10
 
 def db_connect(host='db', db='todos', user='root', password=get_docker_secret('db_root_password')):
     connection = None

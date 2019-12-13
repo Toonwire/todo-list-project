@@ -9,13 +9,16 @@ services:
       - "5000:5000"
     secrets:
       - api_secret_key
+      - db_root_password
 
   db:
     image: mysql:8.0.18
     ports:
       - "5050:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: rootroot
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    secrets:
+      - db_root_password
     volumes:
       - ./database:/docker-entrypoint-initdb.d/:ro
 
@@ -29,4 +32,6 @@ services:
 secrets:
   api_secret_key:
     file: ./secrets/api_secret_key.txt
+  db_root_password:
+    file: ./secrets/db_root_pass.txt
     

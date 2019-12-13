@@ -5,7 +5,6 @@ Created on Fri Nov  8 09:45:39 2019
 @author: lvi
 """
 
-import os
 from flask import Flask, request, jsonify #, abort, flash, url_for, redirect
 import secrets
 import hashlib
@@ -23,7 +22,6 @@ def generate_salt_csprng(n=64):
     salt = ''.join(secrets.choice(possible) for i in range(n))
     return salt
 
-
 def hash_string(key):
     key = str.encode(key)
     h = hashlib.sha256()
@@ -35,9 +33,8 @@ def hash_string(key):
 def generate_token(nbytes=64):
     return secrets.token_hex(nbytes)
 
-
 def update_login_token(user_id):
-    connection = connect('db', 'todos', 'root', 'rootroot')
+    connection = db_connect()
     if (connection is None):
         return None
     
@@ -53,18 +50,17 @@ def update_login_token(user_id):
         
         token_data = cursor.fetchone()
         if (token_data):
-            print(token_data)
             login_token = token_data[0]
 
             
     except mysql.connector.Error as error:
-        return "parameterized query failed {}".format(error)
+        print("parameterized query failed {}".format(error))
+        return None
         
     finally:
         if (connection.is_connected()):
             cursor.close()
             connection.close()
-            print("Connection closed")
     
     return login_token
     
@@ -96,7 +92,7 @@ def create_user():
 #    if request.headers['Content-Type'] != 'application/json' or request.headers['Content-Type'] != 'application/json;charset=UTF-8':
 #        return jsonify({"Error": "Unexpected Content-Type header", "statusCode": 503, "statusMsg": "Content-Type header did not match required value 'application/json', was " + request.headers['Content-Type']})
 
-    connection = connect('db', 'todos', 'root', 'rootroot')
+    connection = db_connect()
     if (connection is None):
         return jsonify({"errMsg": "Could not connect to database"}), 503
     
@@ -135,10 +131,8 @@ def create_user():
         cursor.execute("SELECT id, username FROM users WHERE username = %s", (user_username,))
         keys = ("id", "username")
         user = dict(zip(keys, cursor.fetchone()))
-        
-        print("register cookie...")        
+
         cookie = make_rememberme_cookie(user.get('id'), login_token)
-        
         response = jsonify({"user": user, "statusMsg": "User created successfully"})
         response.set_cookie('_rememberme', cookie)
         return response, 201
@@ -150,18 +144,21 @@ def create_user():
         if (connection.is_connected()):
             cursor.close()
             connection.close()
-            print("Connection closed")
     
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 
 
 def validate_rememberme_cookie(cookie):
-    user_id, login_token, mac = cookie.split(':')
+    try:
+        user_id, login_token, mac = cookie.split(':')
+    except: # token must have been tampered with
+        return False
+    
     if (sign_sha256(get_docker_secret('api_secret_key'), ':'.join([user_id, login_token])) != mac):
         return False
     
-    connection = connect('db', 'todos', 'root', 'rootroot')
+    connection = db_connect()
     if (connection is None):
         return False
     cursor = connection.cursor(prepared=True)
@@ -174,30 +171,22 @@ def validate_rememberme_cookie(cookie):
             return False
         
         user_login_token = user_token[0]
-        print('userlogintoken=' +user_login_token)
-        print('loginToken=' +login_token)
-        
         return user_login_token == login_token
         
         
     except mysql.connector.Error:
-        return jsonify({"errMsg": "Database error"}), 502
+        return False
         
     finally:
         if (connection.is_connected()):
             cursor.close()
             connection.close()
-            print("Connection closed")
     
 
 def make_rememberme_cookie(user_id, login_token):
     cookie = ':'.join([str(user_id), login_token])
     mac = sign_sha256(get_docker_secret('api_secret_key'), cookie)
     cookie = ':'.join([cookie, mac])
-
-    print('mac: ' + mac)
-    print('cookie: ' + cookie)
-            
     return cookie
 
 @app.route("/login", methods=["POST"])
@@ -205,7 +194,7 @@ def login_user():
     if request.headers['Content-Type'] != 'application/json':
         return jsonify({"errMsg": "Content-Type header did not match required value 'application/json', was " + request.headers['Content-Type']}), 406
     
-    connection = connect('db', 'todos', 'root', 'rootroot')
+    connection = db_connect()
     if (connection is None):
         return jsonify({"errMsg": "Could not connect to database"}), 503
     
@@ -284,7 +273,6 @@ def login_user():
         if (connection.is_connected()):
             cursor.close()
             connection.close()
-            print("Connection closed")
     
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
@@ -298,7 +286,6 @@ def logout_user():
     if (user_id is None): 
         return jsonify({"errMsg": "Cannot logout user"}), 401
     
-    print("LOGGING OUT USERID: " + str(user_id))
     update_login_token(user_id) # change login token to make sure duplicates cant be used 
     response = jsonify({"statusMsg": "User logged out"})
     response.set_cookie('_rememberme', '')  # overwrite cookie to clear it
@@ -313,7 +300,7 @@ def insert_todolists():
    
     todos = [todo for todo in req_data['todo_lists']]
     
-    connection = connect('db', 'todos', 'root', 'rootroot')
+    connection = db_connect()
     if (connection is None):
         return jsonify({"errMsg": "Could not connect to database"}), 503
     
@@ -352,7 +339,7 @@ def insert_todolists():
 @app.route("/todolists", methods=["GET"])
 #@login_required
 def get_todolists():
-    connection = connect('db', 'todos', 'root', 'rootroot')
+    connection = db_connect()
     todo_lists = []
     try:
         user_id = request.args.get('user_id')
@@ -377,13 +364,12 @@ def get_todolists():
         if (connection.is_connected()):
             cursor.close()
             connection.close()
-            print("Connection closed")
         
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
         
 @app.route("/todolist", methods=["POST"])
 def insert_todolist():
-    connection = connect('db', 'todos', 'root', 'rootroot')
+    connection = db_connect()
     if (connection is None):
         return jsonify({"errMsg": "Could not connect to database"}), 503
     
@@ -412,14 +398,13 @@ def insert_todolist():
         if (connection.is_connected()):
             cursor.close()
             connection.close()
-            print("Connection closed")
             
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 
 @app.route("/todo", methods=["PATCH"])
 def update_todo(): # change completed
-    connection = connect('db', 'todos', 'root', 'rootroot')
+    connection = db_connect()
     if (connection is None):
         return jsonify({"errMsg": "Could not connect to database"}), 503
     
@@ -450,14 +435,13 @@ def update_todo(): # change completed
         if (connection.is_connected()):
             cursor.close()
             connection.close()
-            print("Connection closed")
             
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 
 @app.route("/todos/completed", methods=["PATCH"])
 def clear_completed_todos(): 
-    connection = connect('db', 'todos', 'root', 'rootroot')
+    connection = db_connect()
     if (connection is None):
         return jsonify({"errMsg": "Could not connect to database"}), 503
     
@@ -479,14 +463,13 @@ def clear_completed_todos():
         if (connection.is_connected()):
             cursor.close()
             connection.close()
-            print("Connection closed")
     
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
     
     
 @app.route("/todo", methods=["DELETE"])
 def delete_todo(): 
-    connection = connect('db', 'todos', 'root', 'rootroot')
+    connection = db_connect()
     if (connection is None):
         return jsonify({"errMsg": "Could not connect to database"}), 503
     
@@ -509,13 +492,12 @@ def delete_todo():
         if (connection.is_connected()):
             cursor.close()
             connection.close()
-            print("Connection closed")
     
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 @app.route("/todo", methods=["POST"])
 def insert_todo(): 
-    connection = connect('db', 'todos', 'root', 'rootroot')
+    connection = db_connect()
     if (connection is None):
         return jsonify({"errMsg": "Could not connect to database"}), 503
     
@@ -548,14 +530,13 @@ def insert_todo():
         if (connection.is_connected()):
             cursor.close()
             connection.close()
-            print("Connection closed")
             
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
         
 
 @app.route("/todos", methods=["GET"])
 def get_todos(): 
-    connection = connect('db', 'todos', 'root', 'rootroot')
+    connection = db_connect()
     todo_items = []
     try:
         cursor = connection.cursor()
@@ -570,21 +551,19 @@ def get_todos():
         if (connection.is_connected()):
             cursor.close()
             connection.close()
-            print("Connection closed")
         
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
-    
-def connect(host='db', db='todos', user='root', password='rootroot'):
+
+def db_connect(host='db', db='todos', user='root', password=get_docker_secret('db_root_password')):
     connection = None
     try:
         connection = mysql.connector.connect(host=host,
                                              database=db,
                                              user=user,
                                              password=password)
-        print("Connection succeeded")
     except:
-        print("Could not connection to specified host with the given information")
+        print("Could not connect to specified host with the given information")
         
     finally:
         return connection

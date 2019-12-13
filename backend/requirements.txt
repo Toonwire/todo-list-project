@@ -1,5 +1,4 @@
 Flask==1.1.1
-Flask-CORS==3.0.7
 mysql-connector-python==8.0.18
 PyJWT==1.7.1
 get-docker-secret==1.0.1

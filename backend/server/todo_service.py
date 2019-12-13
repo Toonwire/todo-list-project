@@ -79,7 +79,7 @@ def get_login_token_expiration_seconds():
     return 60*10
 
 def set_rememberme_cookie(response, cookie):
-    response.set_cookie('_rememberme', cookie, max_age=get_login_token_expiration_seconds())
+    response.set_cookie('_rememberme', cookie, max_age=get_login_token_expiration_seconds(), httponly=True)
     return response
 
  
@@ -90,7 +90,7 @@ def after_request(response):
     if req_origin in cors_white_list:
         response.headers.add('Access-Control-Allow-Origin', req_origin)
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')        # allow transmit of cookies etc
 #        response.headers.add('Access-Control-Allow-Headers', 'Cache-Control')
 #        response.headers.add('Access-Control-Allow-Headers', 'X-Requested-With')
 #        response.headers.add('Access-Control-Allow-Headers', 'Authorization')

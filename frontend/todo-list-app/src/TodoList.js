@@ -19,24 +19,10 @@ class TodoList extends React.Component {
                 label: "",
                 completed: false,
                 dueDate: null,
+                priority: 0,
             },
             filter: this.props.filter,
         }
-    }
-
-    onSortEnd = ({oldIndex, newIndex}) => {
-        this.setState({
-            todos: arrayMove(this.state.todos, oldIndex, newIndex)
-        });
-    }
-
-    arraySwap = (arr, from, to) => {
-        let swapped = JSON.parse(JSON.stringify(arr));
-        let tempFrom = JSON.parse(JSON.stringify(swapped[from]));
-        let tempTo = JSON.parse(JSON.stringify(swapped[to]));
-        swapped[from] = tempTo;
-        swapped[to] = tempFrom;
-        return swapped;
     }
 
     handleNewTodoChange = (e) => {
@@ -56,6 +42,7 @@ class TodoList extends React.Component {
                 label: newTodo.label.trim(),
                 completed: newTodo.completed,
                 due_date: newTodo.dueDate,
+                priority: this.state.todos.length+1,
                 todolist_id: todoListId,
             }).then(res => {
                 console.log(res)
@@ -66,6 +53,7 @@ class TodoList extends React.Component {
                     label: insertedTodo.label,
                     completed: insertedTodo.completed,
                     due_date: insertedTodo.due_date,
+                    priority: insertedTodo.priority,
                 }
 
                 let allTodos = this.state.todos;
@@ -85,10 +73,10 @@ class TodoList extends React.Component {
     }
 
 
-    updateTodo = (todoItem, isCompleted, dueDate) => {    
+    updateTodo = (todoId, isCompleted, dueDate) => {   
         let todos = this.state.todos;
         let todo = todos.find(todo => {
-            return todo.id === todoItem.props.id;
+            return todo.id === todoId;
         });
 
         // const newCompleted = isCompleted === null ? todo.completed : isCompleted;
@@ -100,6 +88,7 @@ class TodoList extends React.Component {
             id: todo.id,
             completed: isCompleted,
             due_date: utcDate,
+            priority: todo.priority
         }).then(res => {
             console.log(res)
             const resTodo = res.data.todo;
@@ -112,7 +101,13 @@ class TodoList extends React.Component {
                 label: resTodo.label,
                 completed: resTodo.completed,
                 dueDate: resTodo.due_date,
+                priority: resTodo.priority
             }
+            
+            // const priorityList = props.todoItems;
+            // priorityList.sort(function(t1, t2) {
+            //     return t1.priority - t2.priority;
+            // });
 
             todo.completed = updatedTodo.completed;
             todo.due_date = updatedTodo.dueDate;
@@ -131,6 +126,7 @@ class TodoList extends React.Component {
         this.state.todos.forEach(todo => {
             if (!todo.completed) activeItems.push(todo);
         });
+        // return this.state.todos.filter(todo => !todo.completed).length;
         return activeItems.length;
     }
 
@@ -155,12 +151,38 @@ class TodoList extends React.Component {
         })
     }
 
+    
+    onSortEnd = ({oldIndex, newIndex}) => {
+        // deep copy todos and rearrange array to match drag/drop
+        let priorityTodos = JSON.parse(JSON.stringify(this.state.todos));
+        priorityTodos = arrayMove(priorityTodos, oldIndex, newIndex);
+
+        // remap priorities of each todo
+        priorityTodos.map((todo, index) => todo.priority = index+1);
+        this.setState({
+            todos: priorityTodos
+        }, () => {
+            // this.state.todos.map(todo => this.updateTodo(todo.id, todo.completed, todo.due_date));  
+            this.state.todos.forEach(todo => this.updateTodo(todo.id, todo.completed, todo.due_date));  // expensive API consumation but it's okay for now
+        });
+    }
+
+    // arraySwap = (arr, from, to) => {
+    //     let swapped = JSON.parse(JSON.stringify(arr));
+    //     let tempFrom = JSON.parse(JSON.stringify(swapped[from]));
+    //     let tempTo = JSON.parse(JSON.stringify(swapped[to]));
+    //     swapped[from] = tempTo;
+    //     swapped[to] = tempFrom;
+    //     return swapped;
+    // }
+
+
 
     render() { 
         
         const SortableTodoContainer = SortableElement((props) => {
             return (
-                <TodoItem key={props.todo.id} id={props.todo.id} label={props.todo.label} completed={props.todo.completed} dueDate={props.todo.due_date} onTodoChange={props.onTodoChange}/>
+                <TodoItem key={props.todo.id} id={props.todo.id} label={props.todo.label} completed={props.todo.completed} dueDate={props.todo.due_date} priority={props.todo.priority} onTodoChange={props.onTodoChange}/>
             )
         });
 

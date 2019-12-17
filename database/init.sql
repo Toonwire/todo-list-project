@@ -40,6 +40,7 @@ CREATE TABLE todo_item (
 	label VARCHAR(255) NOT NULL,
 	completed BOOLEAN,
 	due_date DATETIME,
+	priority INT,
 	todolist_id INT,
 	FOREIGN KEY (todolist_id)
 		REFERENCES todo_list(id)
@@ -54,6 +55,8 @@ VALUES
 	('note3', false, 1),
 	('note4', false, 2),
 	('note5', true, 2);
+
+UPDATE todo_item SET priority = id WHERE priority is NULL;
 
 DELIMITER // ;
 CREATE PROCEDURE delete_completed(IN list_id INT)

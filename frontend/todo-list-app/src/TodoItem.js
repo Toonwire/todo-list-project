@@ -53,7 +53,7 @@ class TodoItem extends React.Component {
 
     onTodoChange = (completed, date) => {
         this.setState({completed: completed, dueDate: date}, () => {
-            this.props.onTodoChange(this, completed, date);
+            this.props.onTodoChange(this.props.id, completed, date);
         })
     }
 

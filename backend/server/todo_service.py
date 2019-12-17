@@ -356,7 +356,7 @@ def get_todolists():
             list_title = todolist[1]
             
             cursor.execute(""" SELECT * FROM todo_item WHERE todolist_id=(%s) """, (list_id,))
-            todo_items = [{"id": item_id, "label": label, "completed": completed, "due_date": due_date} for (item_id, label, completed, due_date, todolist_id) in cursor]
+            todo_items = [{"id": item_id, "label": label, "completed": completed, "due_date": due_date, "priority": priority} for (item_id, label, completed, due_date, priority, todolist_id) in cursor]
             todo_lists.append({"id": list_id, "title": list_title, "todo_items": todo_items})
         
         return jsonify({"todo_lists": todo_lists, "statusMsg": "Successfully fetched todo lists belonging to user"}), 200
@@ -415,23 +415,23 @@ def update_todo(): # change completed
     todo = None
     cursor = connection.cursor(prepared=True)
     try:
-        query = """ UPDATE todo_item SET completed=(%s), due_date=(%s) WHERE id=(%s) """
+        query = """ UPDATE todo_item SET completed=(%s), due_date=(%s), priority=(%s) WHERE id=(%s) """
         
         req_data = request.get_json()
         todo_completed = req_data['completed']
         todo_duedate = req_data['due_date']
         todo_id = req_data['id']
+        todo_priority = req_data['priority']
         
-        cursor.execute(query, (todo_completed, todo_duedate, todo_id))
+        cursor.execute(query, (todo_completed, todo_duedate, todo_priority, todo_id))
         connection.commit()
         
         ## setup return data 
-        cursor.execute("SELECT id, label, completed, due_date, todolist_id FROM todo_item WHERE id = %s", (todo_id,))
-        keys = ("id", "label", "completed", "due_date", "todolist_id")
+        cursor.execute("SELECT id, label, completed, due_date, priority, todolist_id FROM todo_item WHERE id = %s", (todo_id,))
+        keys = ("id", "label", "completed", "due_date", "priority", "todolist_id")
         todo = dict(zip(keys, cursor.fetchone()))
         return jsonify({"todo": todo, "statusMsg": "Updated todo item"}), 200
-
-            
+    
     except mysql.connector.Error:
         return jsonify({"errMsg": "Database error"}), 502
         
@@ -509,20 +509,21 @@ def insert_todo():
     
     todo = None
     try:
-        query = """ INSERT INTO todo_item (label, completed, due_date, todolist_id) VALUES (%s, %s, %s, %s) """
+        query = """ INSERT INTO todo_item (label, completed, due_date, priority, todolist_id) VALUES (%s, %s, %s, %s, %s) """
         
         req_data = request.get_json()
         todo_label = req_data['label']
         todo_completed = req_data['completed']
         todo_duedate = req_data['due_date']
+        todo_priority = req_data['priority']
         todo_list_id = req_data['todolist_id']
         
-        cursor.execute(query, (todo_label, todo_completed, todo_duedate, todo_list_id))
+        cursor.execute(query, (todo_label, todo_completed, todo_duedate, todo_priority, todo_list_id))
         connection.commit()
         
         ## setup return data 
         cursor.execute("SELECT * FROM todo_item WHERE id = LAST_INSERT_ID()")
-        keys = ("id", "label", "completed", "due_date", "todolist_id")
+        keys = ("id", "label", "completed", "due_date", "priority", "todolist_id")
         todo = dict(zip(keys, cursor.fetchone()))
         return jsonify({"todo": todo, "statusMsg": "Todo inserted successfully"}), 201
 
@@ -545,7 +546,7 @@ def get_todos():
     try:
         cursor = connection.cursor()
         cursor.execute("SELECT * FROM todo_item")
-        todo_items = [{"id": item_id, "label": label, "completed": completed, "due_date": due_date, "todolist_id": todolist_id} for (item_id, label, completed, due_date, todolist_id) in cursor]
+        todo_items = [{"id": item_id, "label": label, "completed": completed, "due_date": due_date, "priority": priority, "todolist_id": todolist_id} for (item_id, label, completed, due_date, priority, todolist_id) in cursor]
         return jsonify({'todo_items': todo_items, "statusMsg": "Successfully fetched todo items"}), 200
     
     except mysql.connector.Error:

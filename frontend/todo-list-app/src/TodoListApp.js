@@ -43,6 +43,11 @@ class TodoListApp extends React.Component {
 			let initTodoListTabs = []
 			const todoLists = res.data['todo_lists'] // [{..},{..}, ..]
 			todoLists.forEach(todoList => {
+				todoList['todo_items'].sort(function(t1,t2) {
+					return t1.priority - t2.priority;
+				});
+			});
+			todoLists.forEach(todoList => {
 				const listId = todoList['id'] 
 				const title = todoList['title']
 				const todoItems = todoList['todo_items']
@@ -56,7 +61,6 @@ class TodoListApp extends React.Component {
 			console.log(err.response);
 		})
 	}
-
 
 	onTodoListChange = (tabId, todos, filter) => {
 		// update todolist references to reflect changes

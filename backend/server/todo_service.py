@@ -130,16 +130,13 @@ def create_user():
         login_token = generate_token(32)
         pw_token = generate_token()
         
-#        session_id = jwt.encode({'user_username': user_username}, app.config['SECRET_KEY'], algorithm='HS256')
-        
         cursor.execute(query, (user_username, user_fname, user_lname, pw_hash, salt, login_token, pw_token))
         connection.commit() 
         
         
-        
         ## setup return data 
-        cursor.execute("SELECT id, username FROM users WHERE username = %s", (user_username,))
-        keys = ("id", "username")
+        cursor.execute("SELECT id, username, role_desc FROM users JOIN user_role ON users.id = user_role.user_id JOIN roles ON user_role.role_id = roles.role_id WHERE username = %s", (user_username,))
+        keys = ("id", "username", "role_desc")
         user = dict(zip(keys, cursor.fetchone()))
 
         cookie = make_rememberme_cookie(user.get('id'), login_token)
@@ -157,6 +154,60 @@ def create_user():
     
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
+
+#@app.route("/user", methods=["DELETE"])
+#def delete_user():
+#    
+#    connection = db_connect()
+#    if (connection is None):
+#        return jsonify({"errMsg": "Could not connect to database"}), 503
+#    
+#    cursor = connection.cursor(prepared=True)
+#    try:
+#        query = """ DELETE FROM users WHERE id %s """
+#        req_data = request.get_json()
+#        user_id = req_data['user_id']
+#        
+#        cursor.execute("SELECT 1 FROM users WHERE id=(%s)", (user_id,))
+#        cursor.fetchall()
+#        
+#    
+#        if (cursor.rowcount > 0): return jsonify({"errMsg": "Username already in use"}), 409
+#        if user_pw != user_cpw: return jsonify({"errMsg": "Passwords did not match"}), 400
+#        
+#        salt = generate_salt_csprng()
+#        salted_password = user_pw + salt
+#        pw_hash = hash_string(salted_password)
+#        
+#        login_token = generate_token(32)
+#        pw_token = generate_token()
+#        
+##        session_id = jwt.encode({'user_username': user_username}, app.config['SECRET_KEY'], algorithm='HS256')
+#        
+#        cursor.execute(query, (user_username, user_fname, user_lname, pw_hash, salt, login_token, pw_token))
+#        connection.commit() 
+#        
+#        
+#        
+#        ## setup return data 
+#        cursor.execute("SELECT id, username FROM users WHERE id = %s", (user_id,))
+#        keys = ("id", "username")
+#        user = dict(zip(keys, cursor.fetchone()))
+#
+#        cookie = make_rememberme_cookie(user.get('id'), login_token)
+#        response = jsonify({"user": user, "statusMsg": "User created successfully"})
+#        response = set_rememberme_cookie(response, cookie)
+#        return response, 201
+#            
+#    except mysql.connector.Error:
+#        return jsonify({"errMsg": "Database error"}), 502
+#        
+#    finally:
+#        if (connection.is_connected()):
+#            cursor.close()
+#            connection.close()
+#    
+#    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 
 def validate_rememberme_cookie(cookie):

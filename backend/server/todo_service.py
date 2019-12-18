@@ -243,6 +243,27 @@ def validate_rememberme_cookie(cookie):
             cursor.close()
             connection.close()
     
+def get_user_role(user_id):
+    connection = db_connect()
+    if (connection is None):
+        return jsonify({"errMsg": "Could not connect to database"}), 503
+    
+    user_role = None
+    cursor = connection.cursor(prepared=True)
+    try: 
+        cursor.execute("SELECT role_desc FROM users JOIN user_role ON users.id = user_role.user_id JOIN roles ON user_role.role_id = roles.role_id WHERE users.id=(%s)", (user_id,))
+        user_role = cursor.fetchone()
+        if (user_role): 
+            user_role = user_role[0]
+            
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 502
+        
+    finally:
+        if (connection.is_connected()):
+            cursor.close()
+            connection.close()
+    return user_role
 
 @app.route("/login", methods=["POST"])
 def login_user():
@@ -264,10 +285,9 @@ def login_user():
         
         if (auth_by_cookie):
             user_id = request.cookies.get('_rememberme').split(':')[0]
-            cursor.execute("SELECT username FROM users WHERE id=(%s)", (user_id,))
+            cursor.execute("SELECT username, role_desc FROM users JOIN user_role ON users.id = user_role.user_id JOIN roles ON user_role.role_id = roles.role_id WHERE users.id=(%s)", (user_id,))
             
-            
-            username = cursor.fetchone()
+            (username, role_desc) = cursor.fetchone()
             if (username):
                 
                  ## store new login token with user 
@@ -275,8 +295,8 @@ def login_user():
                 cookie = make_rememberme_cookie(user_id, new_login_token) if new_login_token else ''
                 
                 ## setup return data 
-                keys = ("id", "username")
-                values = (user_id, username)
+                keys = ("id", "username", "role_desc")
+                values = (user_id, username, role_desc)
                 user = dict(zip(keys, values))
             
                 response = jsonify({"user": user, "statusMsg": "User logged in by cookie"})
@@ -310,8 +330,8 @@ def login_user():
                 cookie = make_rememberme_cookie(user_id, new_login_token) if new_login_token else ''
                 
                 ## setup return data 
-                keys = ("id", "username")
-                values = (user_id, username)
+                keys = ("id", "username", "role_desc")
+                values = (user_id, username, get_user_role(user_id))
                 user = dict(zip(keys, values))
                 
                 response = jsonify({"user": user, "statusMsg": "User logged in"})

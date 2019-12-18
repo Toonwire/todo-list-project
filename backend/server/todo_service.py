@@ -97,6 +97,50 @@ def after_request(response):
         response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE, PATCH')
     return response
 
+
+
+
+@app.route("/users", methods=["GET"]) # register
+def get_users():
+#    if request.headers['Content-Type'] != 'application/json' or request.headers['Content-Type'] != 'application/json;charset=UTF-8':
+#        return jsonify({"Error": "Unexpected Content-Type header", "statusCode": 503, "statusMsg": "Content-Type header did not match required value 'application/json', was " + request.headers['Content-Type']})
+
+    connection = db_connect()
+    if (connection is None):
+        return jsonify({"errMsg": "Could not connect to database"}), 503
+    
+    
+    # todo: verify that the user querying is admin?
+    
+    users = []
+    cursor = connection.cursor(prepared=True)
+    try: 
+        cursor.execute("SELECT id, username, first_name, last_name, role_desc FROM users JOIN user_role ON users.id = user_role.user_id JOIN roles ON user_role.role_id = roles.role_id;")
+        
+        db_users = cursor.fetchall()
+        for user in db_users:
+            user_id = user[0]
+            user_username = user[1]
+            user_fname = user[2]
+            user_lname = user[3]
+            user_role_desc = user[4]
+            
+            user = {"id": user_id, "username": user_username, "first_name": user_fname, "last_name": user_lname, "role_desc": user_role_desc}
+            users.append(user)
+            
+        return jsonify({"users": users, "statusMsg": "Fetched all users"}), 200
+            
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 502
+        
+    finally:
+        if (connection.is_connected()):
+            cursor.close()
+            connection.close()
+    
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
+
+
 @app.route("/user", methods=["POST"]) # register
 def create_user():
 #    if request.headers['Content-Type'] != 'application/json' or request.headers['Content-Type'] != 'application/json;charset=UTF-8':

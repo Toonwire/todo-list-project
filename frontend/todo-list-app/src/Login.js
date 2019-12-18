@@ -21,7 +21,7 @@ class Login extends React.Component {
         
     }
 
-    componentDidMount(){
+    componentDidMount() {
         // try to login automatically (ie. cookie-based)
         console.log("try auto login");
         this.handleLogin(null);

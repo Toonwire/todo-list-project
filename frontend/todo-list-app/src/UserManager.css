@@ -1,0 +1,16 @@
+
+
+th, td {
+	text-align: left;
+	padding: 8px;
+}
+
+th {
+	background-color: #2e7499;
+	color: #d5e8f2;
+}
+
+#tab_users {
+    width: 100%;
+    border-collapse: collapse;
+}

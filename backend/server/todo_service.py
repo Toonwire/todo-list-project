@@ -158,13 +158,13 @@ def create_user():
         user_fname = req_data['first_name']
         user_lname = req_data['last_name']
         user_pw = req_data['password']
-        user_cpw = req_data['confirmPassword']
+        user_cpw = req_data['confirm_password']
+        user_role_desc = req_data['role_desc'] #optional
         
         cursor.execute("SELECT 1 FROM users WHERE username=(%s)", (user_username,))
-        cursor.fetchall()
-        
+        rows = cursor.fetchall()
     
-        if (cursor.rowcount > 0): return jsonify({"errMsg": "Username already in use"}), 409
+        if (len(rows) > 0): return jsonify({"errMsg": "Username already in use"}), 409
         if user_pw != user_cpw: return jsonify({"errMsg": "Passwords did not match"}), 400
         
         salt = generate_salt_csprng()
@@ -177,15 +177,24 @@ def create_user():
         cursor.execute(query, (user_username, user_fname, user_lname, pw_hash, salt, login_token, pw_token))
         connection.commit() 
         
+        user_id = cursor.lastrowid;
+        
+        if (user_role_desc):
+            cursor.execute("UPDATE user_role SET role_id=(SELECT role_id FROM roles WHERE role_desc=%s) WHERE user_id=%s;", (user_role_desc, user_id));
+            connection.commit() 
         
         ## setup return data 
         cursor.execute("SELECT id, username, role_desc FROM users JOIN user_role ON users.id = user_role.user_id JOIN roles ON user_role.role_id = roles.role_id WHERE username = %s", (user_username,))
         keys = ("id", "username", "role_desc")
         user = dict(zip(keys, cursor.fetchone()))
 
-        cookie = make_rememberme_cookie(user.get('id'), login_token)
         response = jsonify({"user": user, "statusMsg": "User created successfully"})
-        response = set_rememberme_cookie(response, cookie)
+        
+        # only set login token cookie if no role is specified (user registration)
+        if not(user_role_desc):
+            cookie = make_rememberme_cookie(user.get('id'), login_token)
+            response = set_rememberme_cookie(response, cookie)
+            
         return response, 201
             
     except mysql.connector.Error:
@@ -286,6 +295,32 @@ def get_user_role(user_id):
             cursor.close()
             connection.close()
     return user_role
+
+
+
+@app.route("/roles", methods=["GET"])
+def get_roles():
+    connection = db_connect()
+    roles = []
+    try:        
+        cursor = connection.cursor()
+        cursor.execute("SELECT role_desc FROM roles;")
+        role_list = cursor.fetchall()
+        for role in role_list:
+            roles.append(role[0])
+        
+        return jsonify({"roles": roles, "statusMsg": "Fetched available roles"}), 200
+             
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 502
+        
+    finally:
+        if (connection.is_connected()):
+            cursor.close()
+            connection.close()
+            
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
+
 
 @app.route("/login", methods=["POST"])
 def login_user():

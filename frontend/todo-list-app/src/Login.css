@@ -9,7 +9,7 @@
     text-align: center;
   }
   
-.login-form input, select {
+.login-form input, .login-form select {
     margin: 0 .25rem;
     width: 50%;
     border: 1px solid #222831;

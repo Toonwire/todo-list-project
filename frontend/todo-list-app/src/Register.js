@@ -36,7 +36,7 @@ class Register extends React.Component {
             first_name: user.firstName,
             last_name: user.lastName,
             password: user.password,
-            confirmPassword: user.confirmPassword,
+            confirm_password: user.confirmPassword,
         }, {headers: headers, withCredentials: true}).then(res => {
             console.log(res)
             const resUser = res.data.user;

@@ -1,16 +1,28 @@
 
-
-th, td {
-	text-align: left;
-	padding: 8px;
+#tab-users {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-th {
+#new-user-role input, #new-user-role select {
+	width: 100px;
+}
+
+DIV.table {
+    display:table;
+}
+FORM.tr, DIV.tr {
+    display:table-row;
+}
+
+FORM.th, DIV.th {
+	display: table-header-group;
 	background-color: #2e7499;
 	color: #d5e8f2;
 }
 
-#tab_users {
-    width: 100%;
-    border-collapse: collapse;
+SPAN.td {
+    display:table-cell;
+	text-align: left;
+	padding: 8px;
 }

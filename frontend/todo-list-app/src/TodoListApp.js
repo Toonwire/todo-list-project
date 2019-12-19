@@ -207,7 +207,7 @@ class TodoListApp extends React.Component {
 					<Route 
 						path="/manage-users"
 						render = {() =>
-							isUserLoggedIn && this.state.user.userRole === "Admin" ? <UserManager /> : <Redirect to="/login"/>
+							isUserLoggedIn && this.state.user.userRole === "Admin" ? <UserManager userId={Number(this.state.user.id)}/> : <Redirect to="/login"/>
 						}
 					/>
 					<Route 

@@ -97,6 +97,50 @@ def after_request(response):
         response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE, PATCH')
     return response
 
+
+
+
+@app.route("/users", methods=["GET"]) # register
+def get_users():
+#    if request.headers['Content-Type'] != 'application/json' or request.headers['Content-Type'] != 'application/json;charset=UTF-8':
+#        return jsonify({"Error": "Unexpected Content-Type header", "statusCode": 503, "statusMsg": "Content-Type header did not match required value 'application/json', was " + request.headers['Content-Type']})
+
+    connection = db_connect()
+    if (connection is None):
+        return jsonify({"errMsg": "Could not connect to database"}), 503
+    
+    
+    # todo: verify that the user querying is admin?
+    
+    users = []
+    cursor = connection.cursor(prepared=True)
+    try: 
+        cursor.execute("SELECT id, username, first_name, last_name, role_desc FROM users JOIN user_role ON users.id = user_role.user_id JOIN roles ON user_role.role_id = roles.role_id;")
+        
+        db_users = cursor.fetchall()
+        for user in db_users:
+            user_id = user[0]
+            user_username = user[1]
+            user_fname = user[2]
+            user_lname = user[3]
+            user_role_desc = user[4]
+            
+            user = {"id": user_id, "username": user_username, "first_name": user_fname, "last_name": user_lname, "role_desc": user_role_desc}
+            users.append(user)
+            
+        return jsonify({"users": users, "statusMsg": "Fetched all users"}), 200
+            
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 502
+        
+    finally:
+        if (connection.is_connected()):
+            cursor.close()
+            connection.close()
+    
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
+
+
 @app.route("/user", methods=["POST"]) # register
 def create_user():
 #    if request.headers['Content-Type'] != 'application/json' or request.headers['Content-Type'] != 'application/json;charset=UTF-8':
@@ -114,13 +158,13 @@ def create_user():
         user_fname = req_data['first_name']
         user_lname = req_data['last_name']
         user_pw = req_data['password']
-        user_cpw = req_data['confirmPassword']
+        user_cpw = req_data['confirm_password']
+        user_role_desc = req_data['role_desc'] #optional
         
         cursor.execute("SELECT 1 FROM users WHERE username=(%s)", (user_username,))
-        cursor.fetchall()
-        
+        rows = cursor.fetchall()
     
-        if (cursor.rowcount > 0): return jsonify({"errMsg": "Username already in use"}), 409
+        if (len(rows) > 0): return jsonify({"errMsg": "Username already in use"}), 409
         if user_pw != user_cpw: return jsonify({"errMsg": "Passwords did not match"}), 400
         
         salt = generate_salt_csprng()
@@ -130,21 +174,27 @@ def create_user():
         login_token = generate_token(32)
         pw_token = generate_token()
         
-#        session_id = jwt.encode({'user_username': user_username}, app.config['SECRET_KEY'], algorithm='HS256')
-        
         cursor.execute(query, (user_username, user_fname, user_lname, pw_hash, salt, login_token, pw_token))
         connection.commit() 
         
+        user_id = cursor.lastrowid;
         
+        if (user_role_desc):
+            cursor.execute("UPDATE user_role SET role_id=(SELECT role_id FROM roles WHERE role_desc=%s) WHERE user_id=%s;", (user_role_desc, user_id));
+            connection.commit() 
         
         ## setup return data 
-        cursor.execute("SELECT id, username FROM users WHERE username = %s", (user_username,))
-        keys = ("id", "username")
+        cursor.execute("SELECT id, username, role_desc FROM users JOIN user_role ON users.id = user_role.user_id JOIN roles ON user_role.role_id = roles.role_id WHERE username = %s", (user_username,))
+        keys = ("id", "username", "role_desc")
         user = dict(zip(keys, cursor.fetchone()))
 
-        cookie = make_rememberme_cookie(user.get('id'), login_token)
         response = jsonify({"user": user, "statusMsg": "User created successfully"})
-        response = set_rememberme_cookie(response, cookie)
+        
+        # only set login token cookie if no role is specified (user registration)
+        if not(user_role_desc):
+            cookie = make_rememberme_cookie(user.get('id'), login_token)
+            response = set_rememberme_cookie(response, cookie)
+            
         return response, 201
             
     except mysql.connector.Error:
@@ -157,6 +207,38 @@ def create_user():
     
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
+
+@app.route("/user", methods=["DELETE"])
+def delete_user():
+    
+    connection = db_connect()
+    if (connection is None):
+        return jsonify({"errMsg": "Could not connect to database"}), 503
+    
+    cursor = connection.cursor(prepared=True)
+    try:
+        req_data = request.get_json()
+        if (req_data is None):
+             return jsonify({"errMsg": "Invalid request"}), 401
+         
+        user_id = req_data['user_id']
+        if (user_id is None):
+            return jsonify({"errMsg": "Invalid request parameters"}), 401
+        
+        cursor.execute("DELETE FROM users WHERE id=%s", (user_id,))
+        connection.commit() 
+        
+        return jsonify({"errMsg": "User successfully deleted"}), 200
+            
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 502
+        
+    finally:
+        if (connection.is_connected()):
+            cursor.close()
+            connection.close()
+    
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 
 def validate_rememberme_cookie(cookie):
@@ -192,6 +274,53 @@ def validate_rememberme_cookie(cookie):
             cursor.close()
             connection.close()
     
+def get_user_role(user_id):
+    connection = db_connect()
+    if (connection is None):
+        return jsonify({"errMsg": "Could not connect to database"}), 503
+    
+    user_role = None
+    cursor = connection.cursor(prepared=True)
+    try: 
+        cursor.execute("SELECT role_desc FROM users JOIN user_role ON users.id = user_role.user_id JOIN roles ON user_role.role_id = roles.role_id WHERE users.id=(%s)", (user_id,))
+        user_role = cursor.fetchone()
+        if (user_role): 
+            user_role = user_role[0]
+            
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 502
+        
+    finally:
+        if (connection.is_connected()):
+            cursor.close()
+            connection.close()
+    return user_role
+
+
+
+@app.route("/roles", methods=["GET"])
+def get_roles():
+    connection = db_connect()
+    roles = []
+    try:        
+        cursor = connection.cursor()
+        cursor.execute("SELECT role_desc FROM roles;")
+        role_list = cursor.fetchall()
+        for role in role_list:
+            roles.append(role[0])
+        
+        return jsonify({"roles": roles, "statusMsg": "Fetched available roles"}), 200
+             
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 502
+        
+    finally:
+        if (connection.is_connected()):
+            cursor.close()
+            connection.close()
+            
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
+
 
 @app.route("/login", methods=["POST"])
 def login_user():
@@ -213,10 +342,9 @@ def login_user():
         
         if (auth_by_cookie):
             user_id = request.cookies.get('_rememberme').split(':')[0]
-            cursor.execute("SELECT username FROM users WHERE id=(%s)", (user_id,))
+            cursor.execute("SELECT username, role_desc FROM users JOIN user_role ON users.id = user_role.user_id JOIN roles ON user_role.role_id = roles.role_id WHERE users.id=(%s)", (user_id,))
             
-            
-            username = cursor.fetchone()
+            (username, role_desc) = cursor.fetchone()
             if (username):
                 
                  ## store new login token with user 
@@ -224,8 +352,8 @@ def login_user():
                 cookie = make_rememberme_cookie(user_id, new_login_token) if new_login_token else ''
                 
                 ## setup return data 
-                keys = ("id", "username")
-                values = (user_id, username)
+                keys = ("id", "username", "role_desc")
+                values = (user_id, username, role_desc)
                 user = dict(zip(keys, values))
             
                 response = jsonify({"user": user, "statusMsg": "User logged in by cookie"})
@@ -259,8 +387,8 @@ def login_user():
                 cookie = make_rememberme_cookie(user_id, new_login_token) if new_login_token else ''
                 
                 ## setup return data 
-                keys = ("id", "username")
-                values = (user_id, username)
+                keys = ("id", "username", "role_desc")
+                values = (user_id, username, get_user_role(user_id))
                 user = dict(zip(keys, values))
                 
                 response = jsonify({"user": user, "statusMsg": "User logged in"})

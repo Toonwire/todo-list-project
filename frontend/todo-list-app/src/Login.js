@@ -12,6 +12,7 @@ class Login extends React.Component {
 
         this.state = {
             userId: null,
+            userRole: null,
             username: "",
             password: "",
             loginFailed: false,
@@ -20,7 +21,7 @@ class Login extends React.Component {
         
     }
 
-    componentDidMount(){
+    componentDidMount() {
         // try to login automatically (ie. cookie-based)
         console.log("try auto login");
         this.handleLogin(null);
@@ -31,7 +32,7 @@ class Login extends React.Component {
         try {
             event.preventDefault();
         } catch (err) {
-            console.log("login via cookie");
+            console.log("No login event detected - attempt login via cookie");
             cookieLogin = true;
         }
 
@@ -47,7 +48,10 @@ class Login extends React.Component {
         }, {headers: headers, withCredentials: true}).then(res => {
             console.log(res);
             const verifiedUser = res.data.user;
-            this.setState({userId: verifiedUser.id}, () => {
+            this.setState({
+                userId: verifiedUser.id,
+                userRole: verifiedUser.role_desc,
+            }, () => {
                 this.props.onLoginSuccess(verifiedUser);
             });
         }).catch(err => {

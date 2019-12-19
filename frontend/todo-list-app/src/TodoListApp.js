@@ -10,7 +10,7 @@ import {
 	Switch,
 	Route,
 	Link,
-	Redirect
+	Redirect,
   } from "react-router-dom";
 
 
@@ -20,7 +20,6 @@ class TodoListApp extends React.Component {
 	constructor(props) {
 		super(props);
 
-
 		this.state = {
 			user: {
 				id: null,
@@ -29,6 +28,7 @@ class TodoListApp extends React.Component {
 			},
 			todoListTabs: [],
 			newTabLabel: "",
+			postLoginPath: "/todolists",
 		}
 	}
 
@@ -145,13 +145,13 @@ class TodoListApp extends React.Component {
 		this.setState({newTabLabel: e.target.value});
 	}
 	
-	onLoginSuccess = (user) => {
+	onLoginSuccess = (user, redirectPath) => {
 		const loggedInUser = {
 			id: user.id,
 			username: user.username,
 			userRole: user.role_desc,
 		}
-		this.setState({user: loggedInUser}, this.getUserTodoLists);
+		this.setState({user: loggedInUser, postLoginPath: redirectPath}, this.getUserTodoLists);
 	}
 
 	handleLogout = () => {
@@ -178,7 +178,9 @@ class TodoListApp extends React.Component {
 	render() {  
 		const isUserLoggedIn = this.state.user.id !== null;
 		console.log("user logged in: ");
-		console.log(this.state.user);
+		console.log(this.state.user)
+
+		console.log(this.state);
 
 		return (
 			<Router>			
@@ -201,19 +203,29 @@ class TodoListApp extends React.Component {
 								</div>
 								<this.ActiveTodoList todoListTabs={this.state.todoListTabs}/>
 							</div>
-							: <Redirect to='/login' />
+							: <Redirect to={{
+								pathname: "/login",
+								state: {
+									postLoginPath: "/todolists"
+								}
+							}}/>
 						} 
 					/>
 					<Route 
 						path="/manage-users"
 						render = {() =>
-							isUserLoggedIn && this.state.user.userRole === "Admin" ? <UserManager userId={Number(this.state.user.id)}/> : <Redirect to="/login"/>
+							isUserLoggedIn && this.state.user.userRole === "Admin" ? <UserManager userId={Number(this.state.user.id)}/> : <Redirect push to={{
+								pathname: "/login",
+								state: {
+									postLoginPath: "/manage-users"
+								}
+							}}/>
 						}
 					/>
 					<Route 
 						path="/login"
 						render = {() =>
-							isUserLoggedIn ? <Redirect to='/todolists'/> : <Login onLoginSuccess={this.onLoginSuccess}/>
+							isUserLoggedIn ? <Redirect to={this.state.postLoginPath}/> : <Login onLoginSuccess={this.onLoginSuccess}/>
 						}
 					/>
 					<Route 

@@ -2,8 +2,9 @@ import React from 'react';
 import axios from 'axios';
 import './Login.css';
 
-import "react-router-dom";
-
+import {
+	withRouter
+  } from "react-router-dom";
 
 class Login extends React.Component {
    
@@ -52,7 +53,7 @@ class Login extends React.Component {
                 userId: verifiedUser.id,
                 userRole: verifiedUser.role_desc,
             }, () => {
-                this.props.onLoginSuccess(verifiedUser);
+                this.props.onLoginSuccess(verifiedUser, this.props.location.state.postLoginPath);
             });
         }).catch(err => {
             console.log(err.response);
@@ -89,4 +90,4 @@ class Login extends React.Component {
     }
 }
 
-export default Login;
+export default withRouter(Login);

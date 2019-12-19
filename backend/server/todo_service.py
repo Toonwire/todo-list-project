@@ -199,59 +199,37 @@ def create_user():
     return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 
-#@app.route("/user", methods=["DELETE"])
-#def delete_user():
-#    
-#    connection = db_connect()
-#    if (connection is None):
-#        return jsonify({"errMsg": "Could not connect to database"}), 503
-#    
-#    cursor = connection.cursor(prepared=True)
-#    try:
-#        query = """ DELETE FROM users WHERE id %s """
-#        req_data = request.get_json()
-#        user_id = req_data['user_id']
-#        
-#        cursor.execute("SELECT 1 FROM users WHERE id=(%s)", (user_id,))
-#        cursor.fetchall()
-#        
-#    
-#        if (cursor.rowcount > 0): return jsonify({"errMsg": "Username already in use"}), 409
-#        if user_pw != user_cpw: return jsonify({"errMsg": "Passwords did not match"}), 400
-#        
-#        salt = generate_salt_csprng()
-#        salted_password = user_pw + salt
-#        pw_hash = hash_string(salted_password)
-#        
-#        login_token = generate_token(32)
-#        pw_token = generate_token()
-#        
-##        session_id = jwt.encode({'user_username': user_username}, app.config['SECRET_KEY'], algorithm='HS256')
-#        
-#        cursor.execute(query, (user_username, user_fname, user_lname, pw_hash, salt, login_token, pw_token))
-#        connection.commit() 
-#        
-#        
-#        
-#        ## setup return data 
-#        cursor.execute("SELECT id, username FROM users WHERE id = %s", (user_id,))
-#        keys = ("id", "username")
-#        user = dict(zip(keys, cursor.fetchone()))
-#
-#        cookie = make_rememberme_cookie(user.get('id'), login_token)
-#        response = jsonify({"user": user, "statusMsg": "User created successfully"})
-#        response = set_rememberme_cookie(response, cookie)
-#        return response, 201
-#            
-#    except mysql.connector.Error:
-#        return jsonify({"errMsg": "Database error"}), 502
-#        
-#    finally:
-#        if (connection.is_connected()):
-#            cursor.close()
-#            connection.close()
-#    
-#    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
+@app.route("/user", methods=["DELETE"])
+def delete_user():
+    
+    connection = db_connect()
+    if (connection is None):
+        return jsonify({"errMsg": "Could not connect to database"}), 503
+    
+    cursor = connection.cursor(prepared=True)
+    try:
+        req_data = request.get_json()
+        if (req_data is None):
+             return jsonify({"errMsg": "Invalid request"}), 401
+         
+        user_id = req_data['user_id']
+        if (user_id is None):
+            return jsonify({"errMsg": "Invalid request parameters"}), 401
+        
+        cursor.execute("DELETE FROM users WHERE id=%s", (user_id,))
+        connection.commit() 
+        
+        return jsonify({"errMsg": "User successfully deleted"}), 200
+            
+    except mysql.connector.Error:
+        return jsonify({"errMsg": "Database error"}), 502
+        
+    finally:
+        if (connection.is_connected()):
+            cursor.close()
+            connection.close()
+    
+    return jsonify({"errMsg": "Something went wrong - unexpected error"}), 500
 
 
 def validate_rememberme_cookie(cookie):

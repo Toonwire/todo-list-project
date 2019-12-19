@@ -1,0 +1,28 @@
+
+#tab-users {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#new-user-role input, #new-user-role select {
+	width: 100px;
+}
+
+DIV.table {
+    display:table;
+}
+FORM.tr, DIV.tr {
+    display:table-row;
+}
+
+FORM.th, DIV.th {
+	display: table-header-group;
+	background-color: #2e7499;
+	color: #d5e8f2;
+}
+
+SPAN.td {
+    display:table-cell;
+	text-align: left;
+	padding: 8px;
+}

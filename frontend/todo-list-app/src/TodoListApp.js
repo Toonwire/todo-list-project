@@ -4,6 +4,7 @@ import axios from 'axios';
 import TodoList from './TodoList';
 import Login from './Login';
 import Register from './Register';
+import UserManager from './UserManager';
 import {
 	BrowserRouter as Router,
 	Switch,
@@ -23,8 +24,8 @@ class TodoListApp extends React.Component {
 		this.state = {
 			user: {
 				id: null,
+				userRole: null,
 				username: "",
-				// loginToken: "",
 			},
 			todoListTabs: [],
 			newTabLabel: "",
@@ -55,10 +56,11 @@ class TodoListApp extends React.Component {
 				initTodoListTabs.push({id: listId, label: title, isActive: false, todoList: jsxTodoList})
 			});
 
-			initTodoListTabs[0]['isActive'] = true
+			if (initTodoListTabs.length > 0)
+				initTodoListTabs[0]['isActive'] = true;
 			this.setState({todoListTabs: initTodoListTabs})
 		}).catch(err => {
-			console.log(err.response);
+			console.log(err);
 		})
 	}
 
@@ -147,6 +149,7 @@ class TodoListApp extends React.Component {
 		const loggedInUser = {
 			id: user.id,
 			username: user.username,
+			userRole: user.role_desc,
 		}
 		this.setState({user: loggedInUser}, this.getUserTodoLists);
 	}
@@ -174,6 +177,8 @@ class TodoListApp extends React.Component {
 
 	render() {  
 		const isUserLoggedIn = this.state.user.id !== null;
+		console.log("user logged in: ");
+		console.log(this.state.user);
 
 		return (
 			<Router>			
@@ -186,6 +191,9 @@ class TodoListApp extends React.Component {
 								<h1>{"Welcome " + (this.state.user.username)}</h1>
 								<Link to="/logout">log out</Link>
 								<div>
+									{this.state.user.userRole === "Admin" ? <Link to="/manage-users">manage users</Link> : ""}
+								</div>
+								<div>
 									<input className="todo-list-new" type="text" placeholder="New todo list" value={this.state.newTabLabel} onChange={this.onNewTabChange} onKeyDown={this.handleKeyDown} />
 								</div>
 								<div className="todo-list-tabs">
@@ -195,6 +203,12 @@ class TodoListApp extends React.Component {
 							</div>
 							: <Redirect to='/login' />
 						} 
+					/>
+					<Route 
+						path="/manage-users"
+						render = {() =>
+							isUserLoggedIn && this.state.user.userRole === "Admin" ? <UserManager userId={Number(this.state.user.id)}/> : <Redirect to="/login"/>
+						}
 					/>
 					<Route 
 						path="/login"

@@ -13,6 +13,7 @@ class Register extends React.Component {
         this.state = {
             user: {
                 id: null,
+                role: null,
                 username: "",
                 firstName: "",
                 lastName: "",            
@@ -35,7 +36,7 @@ class Register extends React.Component {
             first_name: user.firstName,
             last_name: user.lastName,
             password: user.password,
-            confirmPassword: user.confirmPassword,
+            confirm_password: user.confirmPassword,
         }, {headers: headers, withCredentials: true}).then(res => {
             console.log(res)
             const resUser = res.data.user;
@@ -43,6 +44,7 @@ class Register extends React.Component {
 
             let loggedInUser = this.state.user;
             loggedInUser.id = resUser.id;
+            loggedInUser.role = resUser.role_desc;
 
             this.setState({user: loggedInUser});
         }).catch(err => {
@@ -86,7 +88,6 @@ class Register extends React.Component {
             <form className={"register-form" + (this.state.user.id ? " success" : "")} onSubmit={this.register}>
                 <h1>
                     {(() => {
-                        console.log('user id: ' + this.state.user.id);
                         if (this.state.user.id) return "Success"
                         return "Register"
                     })()}

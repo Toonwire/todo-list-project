@@ -56,10 +56,11 @@ class TodoListApp extends React.Component {
 				initTodoListTabs.push({id: listId, label: title, isActive: false, todoList: jsxTodoList})
 			});
 
-			initTodoListTabs[0]['isActive'] = true
+			if (initTodoListTabs.length > 0)
+				initTodoListTabs[0]['isActive'] = true;
 			this.setState({todoListTabs: initTodoListTabs})
 		}).catch(err => {
-			console.log(err.response);
+			console.log(err);
 		})
 	}
 
@@ -176,6 +177,7 @@ class TodoListApp extends React.Component {
 
 	render() {  
 		const isUserLoggedIn = this.state.user.id !== null;
+		console.log("user logged in: ");
 		console.log(this.state.user);
 
 		return (
@@ -205,7 +207,7 @@ class TodoListApp extends React.Component {
 					<Route 
 						path="/manage-users"
 						render = {() =>
-							isUserLoggedIn  && this.state.user.userRole === "Admin" ? <UserManager /> : <Login onLoginSuccess={this.onLoginSuccess}/>
+							isUserLoggedIn && this.state.user.userRole === "Admin" ? <UserManager /> : <Redirect to="/login"/>
 						}
 					/>
 					<Route 

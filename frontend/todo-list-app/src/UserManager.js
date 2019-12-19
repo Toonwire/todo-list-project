@@ -22,6 +22,7 @@ class UserManager extends React.Component {
 
 
     fetchUsers = () => {
+        console.log("fetching users");
         const headers = {
             'Content-Type': 'application/json'
         };
@@ -40,7 +41,7 @@ class UserManager extends React.Component {
 
     render() {
         const userListItems = this.state.users.map(user => 
-            <tr>
+            <tr key={user.id}>
                 <td>{user.username}</td>
                 <td>{user.first_name}</td>
                 <td>{user.last_name}</td>
@@ -48,15 +49,19 @@ class UserManager extends React.Component {
             </tr>
         );
         return (
-        <table id="tab_user">
-            <tr>	
-                <th>Username</th>
-                <th>First name</th>
-                <th>Last name</th>
-                <th>Role</th>
-            </tr>
-            {userListItems}
-        </table>
+            <table id="tab_user">
+                <thead>
+                    <tr>	
+                        <th>Username</th>
+                        <th>First name</th>
+                        <th>Last name</th>
+                        <th>Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {userListItems}
+                </tbody>
+            </table>
 		);
     }
 }

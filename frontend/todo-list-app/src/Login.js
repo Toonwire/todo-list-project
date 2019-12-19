@@ -53,7 +53,9 @@ class Login extends React.Component {
                 userId: verifiedUser.id,
                 userRole: verifiedUser.role_desc,
             }, () => {
-                this.props.onLoginSuccess(verifiedUser, this.props.location.state.postLoginPath);
+                if (this.props.location.state)
+                    this.props.onLoginSuccess(verifiedUser, this.props.location.state.postLoginPath);
+                else this.props.onLoginSuccess(verifiedUser);
             });
         }).catch(err => {
             console.log(err.response);

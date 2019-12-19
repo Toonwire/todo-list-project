@@ -40,7 +40,6 @@ class TodoListApp extends React.Component {
 			},
 			withCredentials: true
 		}).then(res => {
-			console.log(res)
 			let initTodoListTabs = []
 			const todoLists = res.data['todo_lists'] // [{..},{..}, ..]
 			todoLists.forEach(todoList => {
@@ -129,9 +128,7 @@ class TodoListApp extends React.Component {
 			}
 			newTab['isActive'] = tabs.length === 0;
 			tabs.push(newTab);
-			this.setState({todoListTabs: tabs, newTabLabel: ""}, () => {
-				console.log(this.state.todoListTabs)
-			});
+			this.setState({todoListTabs: tabs, newTabLabel: ""});
 		});		
 	}
 
@@ -145,7 +142,7 @@ class TodoListApp extends React.Component {
 		this.setState({newTabLabel: e.target.value});
 	}
 	
-	onLoginSuccess = (user, redirectPath) => {
+	onLoginSuccess = (user, redirectPath=this.state.postLoginPath) => {
 		const loggedInUser = {
 			id: user.id,
 			username: user.username,
@@ -162,7 +159,6 @@ class TodoListApp extends React.Component {
         axios.post('http://localhost:5000/logout', {
 			user_id: loggedInUser.id
         }, {headers: headers, withCredentials: true}).then(res => {
-			console.log(res);
 			// reset state
             this.setState({
 				user: {id: null, username: ""},
@@ -171,17 +167,12 @@ class TodoListApp extends React.Component {
 			});
 
         }).catch(err => {
-            console.log(err.response);
+            console.log(err);
         });
 	}
 
 	render() {  
 		const isUserLoggedIn = this.state.user.id !== null;
-		console.log("user logged in: ");
-		console.log(this.state.user)
-
-		console.log(this.state);
-
 		return (
 			<Router>			
 				<Switch>

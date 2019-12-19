@@ -96,7 +96,7 @@ class UserManager extends React.Component {
         e.preventDefault(); // no page reload
 
         const tempPass = this.generateTempPassword(8);
-        console.log(tempPass);
+
         const headers = {
             'Content-Type': 'application/json'
         };
@@ -109,6 +109,8 @@ class UserManager extends React.Component {
             confirm_password: tempPass,
             role_desc: this.state.newUser.role_desc
         }, {headers: headers, withCredentials: true}).then(res => {
+            
+            let msgCreate = "Creating user '" + this.state.newUser.username + "' with temporary password: ";
             this.setState({newUser: {
                 username: "",
                 firstName: "",
@@ -116,6 +118,7 @@ class UserManager extends React.Component {
                 role_desc: this.state.newUser.role_desc,
             }}, () => {
                 this.fetchUsers();
+                alert(msgCreate + tempPass);
             });
         }).catch(err => {
             console.log(err);
@@ -149,7 +152,6 @@ class UserManager extends React.Component {
         const userRoles = this.state.availableRoles.map(role => 
             <option key={role} value={role}>{role}</option>
         ); 
-        console.log(userRoles);
 
         return (
             <div>
